@@ -1,0 +1,252 @@
+# API ENDPOINTS DOCUMENTATION
+Base URL: http://localhost:3000/pajar
+
+## 🔓 PUBLIC ENDPOINTS (No Authentication Required)
+
+### 📝 POSTS
+GET    /posts                      - Get all posts with view, like, share, comment counts
+GET    /posts/:id                  - Get post by ID (increments view count)
+POST   /posts                      - Create new post with images (public creation)
+GET    /posts/:id/comments         - Get comments for a specific post
+POST   /posts/:id/comments         - Add comment to a post
+
+### ❤️ POST INTERACTIONS  
+POST   /posts/:id/like             - Like/Unlike a post
+GET    /posts/:id/like-status      - Check if user has liked a post
+POST   /posts/:id/share            - Share/Unshare a post (tracked)
+GET    /posts/:id/share-status     - Check if user has shared a post
+POST   /posts/:id/share-count      - Increment share count (external shares)
+
+### 📰 ARTICLES
+GET    /articles                   - Get published articles with counts
+GET    /articles/featured          - Get featured articles
+GET    /articles/search            - Search articles by query
+GET    /articles/:id               - Get article by ID (increments view count)
+
+### ❤️ ARTICLE INTERACTIONS
+POST   /articles/:id/like          - Like/Unlike an article
+GET    /articles/:id/like-status   - Check if user has liked an article
+
+### 💬 COMMENTS
+GET    /comments                   - Get all comments with like counts
+GET    /comments/:id               - Get comment by ID
+POST   /comments                   - Create new comment (public)
+
+### ❤️ COMMENT INTERACTIONS
+POST   /comments/:id/like          - Like/Unlike a comment
+GET    /comments/:id/like-status   - Check if user has liked a comment
+
+### 📊 STATISTICS (Public)
+GET    /stats/popular/:type        - Get popular content (type: posts|articles|all)
+                                   - Query params: ?limit=10
+                                   - Returns: view_count, like_count, shared_count, comment_count, image_count
+
+### 🎪 EVENTS (Public)
+GET    /events/upcoming            - Get upcoming published events
+GET    /events/:id                 - Get event by ID
+GET    /events/search              - Search events by query (?q=search_term)
+
+### 📁 STATIC FILES
+GET    /uploads/:filename          - Access uploaded images and files
+
+## 🔒 ADMIN ENDPOINTS (Require Admin Authentication)
+Header: Authorization: Bearer <jwt_token>
+
+### 📝 POST MANAGEMENT
+PUT    /posts/:id                  - Update post (admin only)
+DELETE /posts/:id                  - Delete post (admin only)  
+GET    /posts/:id/stats            - Get detailed post statistics
+
+### 📰 ARTICLE MANAGEMENT
+POST   /articles                   - Create new article with images
+PUT    /articles/:id               - Update article with images
+DELETE /articles/:id               - Delete article
+GET    /articles/:id/stats         - Get detailed article statistics
+
+### 💬 COMMENT MANAGEMENT
+PUT    /comments/:id               - Update comment (admin only)
+DELETE /comments/:id               - Delete comment (admin only)
+GET    /comments/:id/stats         - Get comment statistics
+
+### 📊 STATISTICS (Admin)
+GET    /stats/dashboard            - Dashboard statistics overview
+GET    /stats/content/:type        - Content statistics by type (post|comment|article)
+GET    /stats/content/:type/:id    - Detailed statistics for specific content
+GET    /stats/export               - Export statistics to CSV
+POST   /stats/clean                - Clean old statistics (keep last N days)
+
+### 🎪 EVENT MANAGEMENT
+POST   /events                     - Create new event with Zoom integration
+PUT    /events/:id                 - Update event
+DELETE /events/:id                 - Delete event
+GET    /events                     - Get all events (including drafts)
+GET    /events/date-range          - Get events by date range
+GET    /events/stats               - Get event statistics
+
+## 🔐 AUTHENTICATION ENDPOINTS
+
+### 🚪 LOGIN
+POST   /auth/login                 - Login with username/password
+                                   - Body: { "username": "admin", "password": "password" }
+                                   - Returns: { "token": "jwt_token", "user": {...} }
+
+### 👤 USER MANAGEMENT (Admin)
+POST   /auth/create-admin          - Create new admin user
+POST   /auth/create-superadmin     - Create new superadmin user
+GET    /auth/users                 - List all users
+PUT    /auth/users/:id             - Update user
+DELETE /auth/users/:id             - Delete user
+
+## 📋 REQUEST/RESPONSE FORMATS
+
+### Authentication Header
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+### Image Upload (Multipart Form Data)
+```
+Content-Type: multipart/form-data
+
+fields:
+- title: "Post Title"
+- content: "Post Content"  
+- author: "Author Name"
+- images: [file1.jpg, file2.png] (max 10 files)
+```
+
+### Standard Response Format
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {...}
+}
+```
+
+### Error Response Format  
+```json
+{
+  "error": "Error message description"
+}
+```
+
+## 🔢 HTTP STATUS CODES
+- 200: Success
+- 201: Created
+- 400: Bad Request (validation error)
+- 401: Unauthorized (missing/invalid token)
+- 403: Forbidden (insufficient permissions)
+- 404: Not Found
+- 500: Internal Server Error
+
+## 📊 DATA FIELDS
+
+### Post Object
+```json
+{
+  "id": 1,
+  "title": "Post Title",
+  "content": "Post content...",
+  "author": "Author Name",
+  "view_count": 150,
+  "like_count": 25,
+  "shared_count": 8,
+  "comment_count": 12,
+  "image_count": 3,
+  "created_at": "2025-09-01T10:00:00.000Z",
+  "updated_at": "2025-09-01T10:00:00.000Z",
+  "images": [
+    {
+      "id": 1,
+      "filename": "image.jpg",
+      "original_name": "photo.jpg", 
+      "path": "/pajar/uploads/image.jpg"
+    }
+  ]
+}
+```
+
+### Article Object
+```json
+{
+  "id": 1,
+  "title": "Article Title",
+  "content": "Article content...",
+  "excerpt": "Brief description...",
+  "author": "Author Name",
+  "status": "published|draft",
+  "featured": true,
+  "tags": "tag1,tag2,tag3",
+  "view_count": 500,
+  "like_count": 75,
+  "shared_count": 20,
+  "image_count": 2,
+  "published_at": "2025-09-01T10:00:00.000Z",
+  "created_at": "2025-09-01T10:00:00.000Z"
+}
+```
+
+### Event Object
+```json
+{
+  "id": 1,
+  "title": "Workshop Title",
+  "description": "Event description...",
+  "event_date": "2025-09-15T10:00:00.000Z",
+  "duration_minutes": 360,
+  "location": "Event Location",
+  "max_participants": 50,
+  "status": "published|draft|cancelled|completed",
+  "priority": "low|normal|high|urgent",
+  "created_by": "admin",
+  "zoom_link": "https://zoom.us/j/123456789",
+  "zoom_meeting_id": "123-456-789",
+  "zoom_password": "password123",
+  "image_count": 1
+}
+```
+
+## 🎯 USAGE EXAMPLES
+
+### Create Post with Images
+```bash
+curl -X POST http://localhost:3000/pajar/posts \
+  -F "title=My New Post" \
+  -F "content=This is my post content" \
+  -F "author=John Doe" \
+  -F "images=@image1.jpg" \
+  -F "images=@image2.png"
+```
+
+### Get Popular Posts
+```bash
+curl http://localhost:3000/pajar/stats/popular/posts?limit=5
+```
+
+### Like a Post
+```bash
+curl -X POST http://localhost:3000/pajar/posts/1/like
+```
+
+### Admin Login
+```bash
+curl -X POST http://localhost:3000/pajar/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}'
+```
+
+### Delete Article (Admin)
+```bash
+curl -X DELETE http://localhost:3000/pajar/articles/1 \
+  -H "Authorization: Bearer <jwt_token>"
+```
+s
+## 📝 NOTES
+- All endpoints return JSON responses
+- Image files are served with /pajar/uploads/ prefix
+- View counts auto-increment when accessing detail endpoints
+- Like/Share tracking uses IP + User-Agent for unique identification
+- Admin endpoints require valid JWT token in Authorization header
+- Maximum 10 images per upload
+- Events support Zoom integration with meeting details
