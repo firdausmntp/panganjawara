@@ -102,7 +102,7 @@ const MaintenanceModal = ({
           <div className="flex justify-center mb-4">
             {getStatusIcon()}
           </div>
-          <DialogTitle className="text-xl font-bold">
+          <DialogTitle className="text-xl font-bold text-center">
             {statusMessage.title}
           </DialogTitle>
           <DialogDescription className="text-center">

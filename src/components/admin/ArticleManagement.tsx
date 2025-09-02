@@ -15,8 +15,9 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from '@/components/ui/dialog';
-import { Plus, Edit, Trash2, Eye, Save, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Eye, Save, X, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import AIArticleGenerator from './AIArticleGenerator';
 
 interface Article {
   id: number;
@@ -71,6 +72,7 @@ const ArticleManagement = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [isNewArticle, setIsNewArticle] = useState(false);
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -80,7 +82,7 @@ const ArticleManagement = () => {
     tags: ''
   });
 
-  const categories = ['Edukasi', 'Teknologi', 'Strategi', 'Berita', 'Tips'];
+  const categories = ['Edukasi', 'Teknologi', 'Strategi', 'Berita', 'Tips', 'AI Generated'];
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -119,6 +121,33 @@ const ArticleManagement = () => {
     });
     setIsNewArticle(true);
     setIsEditDialogOpen(true);
+  };
+
+  const handleAIGenerate = () => {
+    setShowAIGenerator(true);
+  };
+
+  const handleAIArticleGenerated = (generatedArticle: { title: string; content: string; images: string[] }) => {
+    // Create new article from AI generated content
+    const newArticle: Article = {
+      id: Math.max(...articles.map(a => a.id)) + 1,
+      title: generatedArticle.title,
+      content: generatedArticle.content,
+      category: 'AI Generated',
+      status: 'draft',
+      tags: ['ai-generated', 'automated'],
+      author: 'AI Assistant',
+      date: new Date().toISOString().split('T')[0],
+      views: 0
+    };
+    
+    setArticles(prev => [...prev, newArticle]);
+    setShowAIGenerator(false);
+    
+    toast({
+      title: "Artikel AI berhasil dibuat!",
+      description: `Artikel "${generatedArticle.title}" telah ditambahkan sebagai draft.`,
+    });
   };
 
   const handleSave = () => {
@@ -199,10 +228,19 @@ const ArticleManagement = () => {
           <h2 className="text-2xl font-bold">Manajemen Artikel</h2>
           <p className="text-gray-600">Kelola semua artikel di platform</p>
         </div>
-        <Button onClick={handleNew}>
-          <Plus className="h-4 w-4 mr-2" />
-          Tambah Artikel
-        </Button>
+        <div className="flex gap-3">
+          <Button onClick={handleNew} variant="default">
+            <Plus className="h-4 w-4 mr-2" />
+            Tambah Artikel
+          </Button>
+          <Button 
+            onClick={handleAIGenerate}
+            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg hover:shadow-xl transition-all"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate AI Artikel
+          </Button>
+        </div>
       </div>
 
       {/* Articles List */}
@@ -368,6 +406,35 @@ const ArticleManagement = () => {
             <Button onClick={handleSave}>
               <Save className="h-4 w-4 mr-2" />
               {isNewArticle ? 'Buat Artikel' : 'Simpan Perubahan'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* AI Article Generator Dialog */}
+      <Dialog open={showAIGenerator} onOpenChange={setShowAIGenerator}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              AI Article Generator
+            </DialogTitle>
+            <DialogDescription>
+              Generate artikel berkualitas menggunakan AI. Artikel yang dihasilkan akan disimpan sebagai draft.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <AIArticleGenerator 
+              onArticleGenerated={handleAIArticleGenerated}
+              className="border-0 shadow-none p-0"
+            />
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAIGenerator(false)}>
+              <X className="h-4 w-4 mr-2" />
+              Tutup
             </Button>
           </DialogFooter>
         </DialogContent>

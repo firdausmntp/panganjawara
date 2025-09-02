@@ -6,10 +6,12 @@ import CommodityTable from "@/components/data/CommodityTable";
 import PriceChangeChart from "@/components/data/PriceChangeChart";
 import StatusPieChart from "@/components/data/StatusPieChart";
 import TopPricesChart from "@/components/data/TopPricesChart";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCommodityPrices } from "@/components/data/useCommodityPrices";
+import WeatherForecast from "@/components/data/WeatherForecast";
 import { useProvinces } from "@/components/data/useProvinces";
 import { useDistricts } from "@/components/data/useDistricts";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const Data = () => {
   const [levelHarga, setLevelHarga] = useState(1); // 1 = produsen, 3 = konsumen
@@ -20,6 +22,97 @@ const Data = () => {
   const { data, loading, error } = useCommodityPrices(levelHarga, province, district);
   const [exporting, setExporting] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+
+  // Auto-location detection & weather code state
+  const [autoLocation, setAutoLocation] = useState<any | null>(null);
+  const [autoError, setAutoError] = useState<string | null>(null);
+  const [attemptedAuto, setAttemptedAuto] = useState(false);
+  const [weatherAdm4, setWeatherAdm4] = useState<string | undefined>(undefined);
+  const [weatherSearching, setWeatherSearching] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
+  // Open error modal if harga data fails
+  useEffect(() => {
+    if (error) setShowErrorModal(true);
+  }, [error]);
+
+  // Fetch visitor location from local backend once
+  useEffect(() => {
+    let abort = false;
+    (async () => {
+      try {
+        const res = await fetch('http://127.0.0.1:3000/pajar/location');
+        if (!res.ok) throw new Error('Status ' + res.status);
+        const json = await res.json();
+        if (!abort) setAutoLocation(json);
+      } catch (e: any) {
+        if (!abort) setAutoError(e.message || 'Gagal auto-lokasi');
+      }
+    })();
+    return () => { abort = true; };
+  }, []);
+
+  // When provinces loaded & location available, auto select province + district (city)
+  useEffect(() => {
+    if (attemptedAuto) return; // only once
+    if (!autoLocation || !provinces.length) return;
+    const provName = autoLocation?.properties?.region?.state_prov || autoLocation?.properties?.country?.name;
+    if (provName) {
+      const matchProv = provinces.find(p => p.nama.toLowerCase() === provName.toLowerCase());
+      if (matchProv) {
+        setProvince(prev => prev || matchProv.id.toString());
+        setSelectedRegion(matchProv.id.toString());
+      }
+    }
+    setAttemptedAuto(true);
+  }, [autoLocation, provinces, attemptedAuto]);
+
+  // When province auto-set and districts loaded, try match district/city from location
+  useEffect(() => {
+    if (!autoLocation) return;
+    if (!province) return;
+    if (!districts.length) return;
+    // Only set if user hasn't chosen manually yet
+    if (district) return;
+    const cityNameRaw = autoLocation?.properties?.region?.city || autoLocation?.properties?.region?.district;
+    if (cityNameRaw) {
+      const normalized = cityNameRaw.toLowerCase().replace(/ city$/i,'').replace(/ regency$/i,'');
+      const matchDist = districts.find(d => d.nama.replace('Kota ','').replace('Kab. ','').toLowerCase() === normalized);
+      if (matchDist) {
+        setDistrict(matchDist.id.toString());
+      }
+    }
+  }, [autoLocation, province, districts, district]);
+
+  // Fetch random adm4 (kelurahan) code for weather based on city name; fallback to default if fail
+  useEffect(() => {
+    const cityName = autoLocation?.properties?.region?.city || autoLocation?.properties?.region?.district;
+    if (!cityName) return;
+    // Only search once
+    if (weatherAdm4) return;
+    setWeatherSearching(true);
+    let abort = false;
+    (async () => {
+      try {
+        const q = encodeURIComponent(cityName);
+        const res = await fetch(`http://127.0.0.1:3000/pajar/wilayah/search?q=${q}`);
+        if (!res.ok) throw new Error('Status ' + res.status);
+        const json = await res.json();
+        const items: { kode: string; nama: string }[] = json.items || [];
+        // Filter adm4 codes (4 segments) containing cityName (case-insensitive)
+        const adm4s = items.filter(i => i.kode.split('.').length === 4);
+        if (adm4s.length) {
+          const pick = adm4s[Math.floor(Math.random()*adm4s.length)];
+          if (!abort) setWeatherAdm4(pick.kode);
+        }
+      } catch (e) {
+        // ignore; will fallback
+      } finally {
+        if (!abort) setWeatherSearching(false);
+      }
+    })();
+    return () => { abort = true; };
+  }, [autoLocation, weatherAdm4]);
   const handleExportExcel = () => {
     setExporting(true);
     import('xlsx').then(xlsx => {
@@ -168,9 +261,40 @@ const Data = () => {
         <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8">
           <PriceChangeChart data={data} />
           <StatusPieChart data={data} />
-            <TopPricesChart data={data} />
+          <TopPricesChart data={data} />
+        </div>
+
+        <div className="mt-10">
+          <WeatherForecast defaultAdm4={weatherAdm4 || '36.03.12.2001'} />
+          {autoError && <div className="text-xs text-red-600 mt-2">Auto lokasi gagal: {autoError}</div>}
+          {!autoError && !autoLocation && <div className="text-xs text-slate-500 mt-2">Mendeteksi lokasi...</div>}
+          {autoLocation && !weatherAdm4 && weatherSearching && <div className="text-xs text-slate-500 mt-2">Menentukan lokasi cuaca...</div>}
         </div>
       </div>
+
+      <Dialog open={showErrorModal} onOpenChange={setShowErrorModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Informasi Akses Data Harga</DialogTitle>
+            <DialogDescription>
+              Data harga komoditas tidak dapat dimuat saat ini. Kemungkinan penyebab:
+              <ul className="list-disc pl-4 mt-2 space-y-1 text-xs">
+                <li>Deteksi atau limitasi IP dari sumber API</li>
+                <li>Batas rate limit tercapai</li>
+                <li>Gangguan jaringan sementara</li>
+              </ul>
+              <div className="mt-3 text-xs">
+                Silakan coba lagi beberapa saat lagi, ganti koneksi (misal hotspot / VPN berbeda), atau hubungi admin jika masalah berlanjut.
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end mt-4">
+            <Button variant="outline" size="sm" onClick={() => setShowErrorModal(false)}>Tutup</Button>
+            <Button size="sm" onClick={() => window.location.reload()}>Coba Lagi</Button>
+          </div>
+          <div className="pt-2 text-[10px] text-slate-400">Kode error: {error || 'unknown'}</div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

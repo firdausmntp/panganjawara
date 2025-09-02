@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BookOpen, Users, Award, PlayCircle, Clock, TrendingUp, Sprout, Tractor, Bug, Droplets, Cloud, DollarSign, Headphones, Star, Eye, Calendar, ArrowRight, Loader2, Search, Filter, Heart, Share2, Bookmark } from "lucide-react";
+import { stripMarkdown } from '../lib/text';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -488,7 +489,7 @@ const coursesForFarmers = [
                       </h3>
                       
                       <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                        {article.excerpt || article.content.substring(0, 120) + '...'}
+                        {stripMarkdown(article.excerpt || article.content, 140)}
                       </p>
                       
                       {article.tags && (
@@ -658,7 +659,7 @@ const coursesForFarmers = [
                         </h3>
                         
                         <p className="text-muted-foreground mb-4">
-                          {article.excerpt || article.content.substring(0, 150) + '...'}
+                          {stripMarkdown(article.excerpt || article.content, 160)}
                         </p>
                         
                         {article.tags && (

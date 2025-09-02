@@ -12,7 +12,8 @@ import {
   Video,
   Link,
   Key,
-  Image
+  Image,
+  Sparkles
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -289,7 +290,7 @@ export const StatusBadge = ({ status, priority }: StatusBadgeProps) => {
 // Add Button Component
 interface AddButtonProps {
   onClick: () => void;
-  type: 'article' | 'event' | 'user';
+  type: 'article' | 'event' | 'user' | 'ai-article';
   className?: string;
 }
 
@@ -298,6 +299,8 @@ export const AddButton = ({ onClick, type, className = "" }: AddButtonProps) => 
     switch (type) {
       case 'article':
         return 'Tambah Artikel';
+      case 'ai-article':
+        return 'Generate AI Artikel';
       case 'event':
         return 'Tambah Event';
       case 'user':
@@ -311,6 +314,8 @@ export const AddButton = ({ onClick, type, className = "" }: AddButtonProps) => 
     switch (type) {
       case 'article':
         return 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700';
+      case 'ai-article':
+        return 'bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600';
       case 'event':
         return 'bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700';
       case 'user':
@@ -320,12 +325,21 @@ export const AddButton = ({ onClick, type, className = "" }: AddButtonProps) => 
     }
   };
 
+  const getButtonIcon = () => {
+    switch (type) {
+      case 'ai-article':
+        return <Sparkles className="h-4 w-4 mr-2" />;
+      default:
+        return <Plus className="h-4 w-4 mr-2" />;
+    }
+  };
+
   return (
     <Button 
       onClick={onClick}
       className={`${getButtonColor()} shadow-lg hover:shadow-xl transition-all ${className}`}
     >
-      <Plus className="h-4 w-4 mr-2" />
+      {getButtonIcon()}
       {getButtonText()}
     </Button>
   );

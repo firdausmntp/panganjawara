@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, MapPin, Users, Eye, Edit2, Trash2, Upload, X, Image as ImageIcon, Move, Video, Link, Key } from 'lucide-react';
+import { Calendar, Clock, MapPin, Users, Eye, Edit2, Trash2, Upload, X, Image as ImageIcon, Move, Video, Link, Key, Sparkles } from 'lucide-react';
 import { MarkdownRenderer } from '@/lib/markdown';
 import { useToast } from '@/hooks/use-toast';
 
@@ -515,6 +515,78 @@ export const ArticleFormModal = ({ article, isOpen, onClose, onSave, mode }: Art
     }));
   };
 
+  // Convert AI-generated images to proper format
+  const processAIImages = async (aiImageUrls: string[]) => {
+    try {
+      const newImageIds: string[] = [];
+      
+      for (const imageUrl of aiImageUrls) {
+        // For base64 data URLs, convert directly
+        if (imageUrl.startsWith('data:')) {
+          const response = await fetch(imageUrl);
+          const blob = await response.blob();
+          const file = new File([blob], `ai_image_${Date.now()}.png`, { type: 'image/png' });
+          const url = URL.createObjectURL(file);
+          const id = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
+          setSelectedImages(prev => [...prev, file]);
+          setImagePreviews(prev => [...prev, { file, url, id }]);
+          newImageIds.push(id);
+        } 
+        // For regular URLs, fetch and convert
+        else if (imageUrl.startsWith('http')) {
+          try {
+            const response = await fetch(imageUrl, { mode: 'cors' });
+            const blob = await response.blob();
+            const file = new File([blob], `ai_image_${Date.now()}.png`, { type: blob.type || 'image/png' });
+            const url = URL.createObjectURL(file);
+            const id = `ai_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            
+            setSelectedImages(prev => [...prev, file]);
+            setImagePreviews(prev => [...prev, { file, url, id }]);
+            newImageIds.push(id);
+          } catch (fetchError) {
+            console.warn('Failed to fetch AI image:', imageUrl, fetchError);
+          }
+        }
+        
+        // Add a small delay between processing images to avoid overwhelming the browser
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      // Automatically add image placeholders to content if content doesn't already have image placeholders
+      setFormData(prev => {
+        const hasImagePlaceholders = prev.content.includes('{{image');
+        if (!hasImagePlaceholders && newImageIds.length > 0) {
+          // Add a section for images at the end of content
+          const imagePlaceholders = newImageIds.map(id => `{{image:${id}}}`).join('\n\n');
+          return {
+            ...prev,
+            content: prev.content + '\n\n---\n\n' + imagePlaceholders
+          };
+        }
+        return prev;
+      });
+      
+    } catch (error) {
+      console.error('Error processing AI images:', error);
+    }
+  };
+
+  // Process AI images when modal opens with AI-generated content
+  useEffect(() => {
+    if (article && isOpen && (article as any).aiImages && (article as any).aiImages.length > 0) {
+      const processImages = async () => {
+        await processAIImages((article as any).aiImages);
+        toast({
+          title: "AI Images Processed",
+          description: `${(article as any).aiImages.length} AI-generated images have been added to your upload queue and content`,
+        });
+      };
+      processImages();
+    }
+  }, [article, isOpen, toast]);
+
   // Handle save with image upload
   const handleSave = async () => {
     setUploading(true);
@@ -778,6 +850,26 @@ export const ArticleFormModal = ({ article, isOpen, onClose, onSave, mode }: Art
                 </div>
               )}
             </div>
+
+            {/* AI Generated Images Indicator */}
+            {(article as any)?.aiImages && (article as any).aiImages.length > 0 && (
+              <div className="space-y-3">
+                <Label className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-purple-600" />
+                  AI Generated Images ({(article as any).aiImages.length})
+                </Label>
+                <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200">
+                  <p className="text-sm text-purple-700 mb-3">
+                    ✨ AI-generated images have been automatically added to your upload queue and image placeholders 
+                    have been inserted at the end of your content. You can move these placeholders anywhere in your content.
+                  </p>
+                  <div className="text-xs text-purple-600 space-y-1">
+                    <p>💡 Images are now available in the "Selected Images" section above</p>
+                    <p>📝 Image placeholders like <code className="bg-purple-100 px-1 rounded">{`{{image:ai_xxx}}`}</code> have been added to your content</p>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-3">

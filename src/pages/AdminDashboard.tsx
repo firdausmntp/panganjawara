@@ -34,7 +34,8 @@ import {
   Clock,
   Loader2,
   Search,
-  X
+  X,
+  Sparkles
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import SecurityLogs from '@/components/admin/SecurityLogs';
@@ -56,6 +57,7 @@ import {
   EventFormModal,
   UserFormModal
 } from '@/components/admin/AdminModals';
+import AIArticleGenerator from '@/components/admin/AIArticleGenerator';
 
 interface Article {
   id: number;
@@ -341,6 +343,8 @@ const AdminDashboard = () => {
     eventForm: { isOpen: false, event: null as Event | null, mode: 'create' as 'create' | 'edit' },
     userForm: { isOpen: false, user: null as User | null, mode: 'create' as 'create' | 'edit' }
   });
+
+  const [showAIGenerator, setShowAIGenerator] = useState(false);
 
   
   const apiCall = async (endpoint: string, method: string = 'GET', body?: any) => {
@@ -918,6 +922,46 @@ const AdminDashboard = () => {
       ...prev,
       articleForm: { isOpen: true, article: null, mode: 'create' }
     }));
+  };
+
+  const handleAddAIArticle = () => {
+    setShowAIGenerator(true);
+  };
+
+  const handleAIArticleGenerated = async (article: any) => {
+    // Close the AI generator
+    setShowAIGenerator(false);
+    
+    // Convert AI-generated images to proper format for the form
+    const aiGeneratedImages = article.images || [];
+    
+    // Open the article form with the generated content
+    setModals(prev => ({
+      ...prev,
+      articleForm: { 
+        isOpen: true, 
+        article: {
+          id: 0,
+          title: article.title,
+          content: article.content,
+          excerpt: article.excerpt || '',
+          author: 'AI Generated',
+          created_at: new Date().toISOString(),
+          status: 'draft' as 'published' | 'draft' | 'archived',
+          view_count: 0,
+          image_count: 0,
+          tags: Array.isArray(article.tags) ? article.tags.join(',') : (article.tags?.join(',') || ''),
+          images: [],
+          aiImages: aiGeneratedImages // Pass AI images separately
+        } as Article & { aiImages?: string[] }, 
+        mode: 'create' 
+      }
+    }));
+
+    toast({
+      title: 'AI Article Generated',
+      description: 'Article has been generated and opened for editing. You can modify it before saving.',
+    });
   };
 
   const handleAddEvent = () => {
@@ -1739,7 +1783,10 @@ const AdminDashboard = () => {
                     placeholder="Cari artikel..."
                     className="flex-1"
                   />
-                  <AddButton type="article" onClick={handleAddArticle} />
+                  <div className="flex gap-2">
+                    <AddButton type="article" onClick={handleAddArticle} />
+                    <AddButton type="ai-article" onClick={handleAddAIArticle} />
+                  </div>
                 </div>
               </div>
 
@@ -2353,6 +2400,33 @@ const AdminDashboard = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* AI Article Generator Dialog */}
+      {showAIGenerator && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-6 w-6 text-purple-600" />
+                <h2 className="text-xl font-semibold text-gray-900">Generate AI Artikel</h2>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowAIGenerator(false)}
+                className="hover:bg-gray-100 rounded-full"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="p-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+              <AIArticleGenerator 
+                onArticleGenerated={handleAIArticleGenerated}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

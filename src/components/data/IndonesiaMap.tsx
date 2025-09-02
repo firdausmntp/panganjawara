@@ -37,6 +37,7 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [isTouching, setIsTouching] = useState(false);
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<{ code: string; x: number; y: number } | null>(null);
@@ -93,6 +94,37 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
 
   const handleMouseUp = () => {
     setIsDragging(false);
+    setIsTouching(false);
+  };
+
+  // Touch event handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setIsTouching(true);
+      setIsDragging(true);
+      setHovered(null); // Clear hover on touch
+      setDragStart({
+        x: touch.clientX - position.x,
+        y: touch.clientY - position.y,
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isTouching || !isDragging || zoom <= 1 || e.touches.length !== 1) return;
+    
+    e.preventDefault(); // Prevent scrolling
+    const touch = e.touches[0];
+    setPosition({
+      x: touch.clientX - dragStart.x,
+      y: touch.clientY - dragStart.y,
+    });
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+    setIsTouching(false);
   };
 
   const handleProvinceClick = (provinceCode: string) => {
@@ -119,8 +151,25 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
       });
     };
 
+    const handleGlobalTouchMove = (e: TouchEvent) => {
+      if (!isTouching || !isDragging || zoom <= 1 || e.touches.length !== 1) return;
+      
+      e.preventDefault();
+      const touch = e.touches[0];
+      setPosition({
+        x: touch.clientX - dragStart.x,
+        y: touch.clientY - dragStart.y,
+      });
+    };
+
     const handleGlobalMouseUp = () => {
       setIsDragging(false);
+      setIsTouching(false);
+    };
+
+    const handleGlobalTouchEnd = () => {
+      setIsDragging(false);
+      setIsTouching(false);
     };
 
     if (isDragging) {
@@ -128,11 +177,18 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
       document.addEventListener('mouseup', handleGlobalMouseUp);
     }
 
+    if (isTouching) {
+      document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+      document.addEventListener('touchend', handleGlobalTouchEnd);
+    }
+
     return () => {
       document.removeEventListener('mousemove', handleGlobalMouseMove);
       document.removeEventListener('mouseup', handleGlobalMouseUp);
+      document.removeEventListener('touchmove', handleGlobalTouchMove);
+      document.removeEventListener('touchend', handleGlobalTouchEnd);
     };
-  }, [isDragging, dragStart.x, dragStart.y, zoom]);
+  }, [isDragging, isTouching, dragStart.x, dragStart.y, zoom]);
 
   return (
     <div 
@@ -175,13 +231,17 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
 
       {/* SVG Map Container */}
     <div 
-        className={`w-full h-full ${zoom > 1 ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'}`}
+        className={`w-full h-full ${zoom > 1 ? (isDragging || isTouching ? 'cursor-grabbing' : 'cursor-grab') : 'cursor-default'}`}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseMove={(e) => {
           handleMouseMove(e);
-      if (!isDragging) updateHoverPos(e);
+      if (!isDragging && !isTouching) updateHoverPos(e);
         }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ touchAction: zoom > 1 ? 'none' : 'auto' }}
       >
         <svg
           ref={svgRef}
@@ -282,10 +342,10 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
         </svg>
       </div>
 
-      {/* Hover tooltip with prices */}
-      {hovered && !isDragging && (
+      {/* Hover tooltip with prices - hide on mobile touch */}
+      {hovered && !isDragging && !isTouching && (
         <div
-          className="absolute z-30 pointer-events-none"
+          className="absolute z-30 pointer-events-none hidden sm:block"
           style={{ left: Math.min(Math.max(hovered.x + 12, 8), (containerRef.current?.clientWidth || 0) - 220), top: Math.min(Math.max(hovered.y + 12, 8), (containerRef.current?.clientHeight || 0) - 140) }}
         >
           <div className="w-[220px] rounded-lg shadow-xl border bg-white/95 backdrop-blur-md p-3 text-xs">
@@ -320,27 +380,30 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
         </div>
       )}
 
-      {/* Legend */}
-      <div className="absolute bottom-4 left-4 z-20 bg-white/95 backdrop-blur-sm rounded-xl p-4 shadow-lg border text-xs">
-        <div className="flex items-center gap-2 font-semibold text-gray-700 mb-2">
-          🗺️ Peta Indonesia Interaktif
+      {/* Legend - smaller on mobile */}
+      <div className="absolute bottom-2 left-2 z-20 bg-white/95 backdrop-blur-sm rounded-lg p-2 sm:p-3 shadow-lg border text-[10px] sm:text-xs max-w-[140px] sm:max-w-none">
+        <div className="flex items-center gap-1 sm:gap-2 font-semibold text-gray-700 mb-1 sm:mb-2">
+          <span className="text-xs sm:text-sm">🗺️</span>
+          <span className="hidden sm:inline">Peta Indonesia Interaktif</span>
+          <span className="sm:hidden">Legenda</span>
         </div>
-        <div className="space-y-1 text-gray-600">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-3 bg-green-600 rounded"></div>
-            <span>Provinsi ({mapData.state_specific ? Object.keys(mapData.state_specific).length : 0})</span>
+        <div className="space-y-0.5 sm:space-y-1 text-gray-600">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-2 sm:w-4 sm:h-3 bg-green-600 rounded"></div>
+            <span className="text-[9px] sm:text-xs">Provinsi ({mapData.state_specific ? Object.keys(mapData.state_specific).length : 0})</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-3 bg-red-600 rounded"></div>
-            <span>Terpilih</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-3 h-2 sm:w-4 sm:h-3 bg-red-600 rounded"></div>
+            <span className="text-[9px] sm:text-xs">Terpilih</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-600 rounded-full"></div>
-            <span>Ibukota</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-600 rounded-full"></div>
+            <span className="text-[9px] sm:text-xs">Ibukota</span>
           </div>
         </div>
-        <div className="text-[10px] text-gray-500 mt-2">
-          Klik untuk memilih • Zoom & drag untuk navigasi
+        <div className="text-[8px] sm:text-[10px] text-gray-500 mt-1 sm:mt-2 leading-tight">
+          <span className="hidden sm:inline">Klik untuk memilih • Zoom & drag untuk navigasi</span>
+          <span className="sm:hidden">Tap • Zoom & geser</span>
         </div>
       </div>
     </div>

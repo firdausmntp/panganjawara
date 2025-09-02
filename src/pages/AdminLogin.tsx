@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Shield, Eye, EyeOff, User } from 'lucide-react';
+import { Loader2, Shield, Eye, EyeOff, User, Home, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useHealthCheckContext } from '@/components/providers/HealthCheckProvider';
 import AuthService from '@/lib/auth';
@@ -83,6 +83,19 @@ const AdminLogin = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
+      {/* Back to Home Button */}
+      <div className="absolute top-6 left-6">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/')}
+          className="flex items-center gap-2 bg-white/80 backdrop-blur hover:bg-white/90 border-green-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          <span className="hidden sm:inline">Kembali ke Beranda</span>
+          <span className="sm:hidden">Beranda</span>
+        </Button>
+      </div>
+
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex justify-center items-center mb-4">
@@ -162,6 +175,20 @@ const AdminLogin = () => {
                 {isLoading ? 'Masuk...' : 'Masuk'}
               </Button>
             </form>
+            
+            {/* Additional navigation */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="text-center text-sm text-gray-600">
+                Bukan admin?{' '}
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="text-green-600 hover:text-green-700 font-medium hover:underline"
+                >
+                  Kembali ke halaman utama
+                </button>
+              </div>
+            </div>
           </CardContent>
         </Card>
         

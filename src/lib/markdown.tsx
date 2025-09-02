@@ -103,19 +103,36 @@ export const parseMarkdown = (text: string, images?: Array<{
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" class="text-blue-600 hover:text-blue-800 underline" target="_blank" rel="noopener noreferrer">$1</a>');
 
  
-  html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-2 text-gray-700">• $1</li>');
+  // Lists with justified text
+  html = html.replace(/^- (.*$)/gim, '<li class="ml-4 mb-2 text-gray-700 text-justify">• $1</li>');
   html = html.replace(/(<li.*<\/li>)/gim, '<ul class="my-4">$1</ul>');
 
- 
-  html = html.replace(/\n\n/gim, '</p><p class="mb-4 text-gray-700 leading-relaxed">');
-  html = html.replace(/\n/gim, '<br />');
+  // Numbered lists with justified text
+  html = html.replace(/^[0-9]+\. (.*$)/gim, '<li class="ml-4 mb-2 text-gray-700 text-justify list-decimal">$1</li>');
+  html = html.replace(/(<li.*list-decimal.*<\/li>)/gim, '<ol class="my-4 list-decimal ml-6">$1</ol>');
 
- 
-  if (!html.startsWith('<h') && !html.startsWith('<div') && !html.startsWith('<ul') && !html.startsWith('<pre') && !html.startsWith('__IMAGE_TOKEN_')) {
-    html = `<p class="mb-4 text-gray-700 leading-relaxed">${html}</p>`;
-  }
+  // Blockquotes with justified text
+  html = html.replace(/^> (.*$)/gim, '<blockquote class="border-l-4 border-blue-400 pl-4 my-4 bg-blue-50 p-3 rounded-r text-gray-700 text-justify italic">$1</blockquote>');
 
- 
+  // Handle paragraphs and line breaks - fix double line break issue
+  // First, split by double line breaks to create paragraphs
+  const paragraphs = html.split(/\n\n+/);
+  html = paragraphs
+    .filter(p => p.trim()) // Remove empty paragraphs
+    .map(p => {
+      // Handle single line breaks within paragraphs as spaces instead of <br />
+      const cleanP = p.replace(/\n/g, ' ').trim();
+      // Don't wrap if it's already a heading, list, blockquote, or other block element
+      if (cleanP.startsWith('<h') || cleanP.startsWith('<li') || cleanP.startsWith('<ul') || 
+          cleanP.startsWith('<ol') || cleanP.startsWith('<blockquote') ||
+          cleanP.startsWith('<pre') || cleanP.startsWith('__IMAGE_TOKEN_') || 
+          cleanP.startsWith('<div')) {
+        return cleanP;
+      }
+      return `<p class="mb-4 text-gray-700 leading-relaxed text-justify">${cleanP}</p>`;
+    })
+    .join('');
+
   Object.keys(imageTokens).forEach(token => {
     html = html.replace(new RegExp(token, 'g'), imageTokens[token]);
   });
