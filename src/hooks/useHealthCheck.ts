@@ -16,7 +16,7 @@ export const useHealthCheck = (checkOnMount: boolean = true) => {
       setHealthStatus(result);
       setLastChecked(new Date());
     } catch (error) {
-      console.error('Health check hook error:', error);
+      // console.error('Health check hook error:', error);
       // Set to maintenance mode on error
       setHealthStatus({
         isHealthy: false,

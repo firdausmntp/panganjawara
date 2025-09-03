@@ -38,7 +38,7 @@ const MainLayout = () => {
       const data = await res.json();
       return (data?.message || "(tidak ada jawaban)").trim();
     } catch (e) {
-      console.error("AI API error", e);
+      // console.error("AI API error", e);
       return "Terjadi kesalahan mengambil jawaban dari AI. Coba lagi nanti.";
     }
   };

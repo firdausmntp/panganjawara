@@ -94,7 +94,7 @@ const AIAssistant = ({ onApiCall }: AIAssistantProps) => {
       // persist after cleaning
       localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(stored));
     } catch (e) {
-      console.warn('Failed loading conversations', e);
+      // console.warn('Failed loading conversations', e);
     }
   }, []);
 

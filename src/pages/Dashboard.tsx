@@ -22,6 +22,7 @@ import { getUserIdentifier } from '@/lib/user';
 import { stripMarkdown } from '../lib/text';
 import ChatAssistant from "@/components/dashboard/ChatAssistant";
 import InteractiveMap from "@/components/dashboard/InteractiveMap";
+import { API_CONFIG, buildApiUrl, buildImageUrl } from '../lib/api';
 
 interface ArticleLite { id:number; title:string; created_at?:string; excerpt?:string; like_count?:number; view_count?:number; images?: { path:string }[]; content?: string; }
 interface PostLite { id:number; title?:string; content:string; author:string; like_count?:number; created_at?:string; }
@@ -80,12 +81,12 @@ const Dashboard = () => {
   useEffect(()=> {
     let abort=false;
     (async()=>{
-      try { setLoadingArticles(true); const r = await fetch('http://127.0.0.1:3000/pajar/public/articles/'); if(!r.ok) throw new Error(); const j= await r.json(); let list:any[] = Array.isArray(j)? j : (j.data||j.articles||[]); list = list.filter(a=>a.status==='published').slice(0,4); if(!abort) setArticles(list); } catch { if(!abort) setArticles([]);} finally { if(!abort) setLoadingArticles(false);} })();
+      try { setLoadingArticles(true); const r = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES)); if(!r.ok) throw new Error(); const j= await r.json(); let list:any[] = Array.isArray(j)? j : (j.data||j.articles||[]); list = list.filter(a=>a.status==='published').slice(0,4); if(!abort) setArticles(list); } catch { if(!abort) setArticles([]);} finally { if(!abort) setLoadingArticles(false);} })();
     return ()=>{abort=true};
   },[]);
   useEffect(()=> {
     let abort=false;
-    (async()=>{ try { setLoadingTrending(true); const r= await fetch('http://127.0.0.1:3000/pajar/public/articles/trending'); if(!r.ok) throw new Error(); const j= await r.json(); let list:any[] = j.articles || j.data || (Array.isArray(j)?j:[]); if(!abort) setTrending(list.slice(0,5)); } catch { if(!abort) setTrending([]);} finally { if(!abort) setLoadingTrending(false);} })();
+    (async()=>{ try { setLoadingTrending(true); const r= await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES_TRENDING)); if(!r.ok) throw new Error(); const j= await r.json(); let list:any[] = j.articles || j.data || (Array.isArray(j)?j:[]); if(!abort) setTrending(list.slice(0,5)); } catch { if(!abort) setTrending([]);} finally { if(!abort) setLoadingTrending(false);} })();
     return ()=>{abort=true};
   },[]);
   useEffect(()=> {
@@ -94,7 +95,7 @@ const Dashboard = () => {
       try { 
         setLoadingPosts(true); 
         const uid = getUserIdentifier();
-        const r= await fetch(`http://127.0.0.1:3000/pajar/posts?user_id=${uid}&page=1&limit=6`); 
+        const r= await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}?user_id=${uid}&page=1&limit=6`)); 
         if(!r.ok) throw new Error(); 
         const j= await r.json(); 
         let list:any[] = Array.isArray(j)? j : (j.posts || j.data?.posts || []); 
@@ -110,15 +111,15 @@ const Dashboard = () => {
     setRefreshing(true);
     try {
       await Promise.all([
-        (async()=>{ const r = await fetch('http://127.0.0.1:3000/pajar/public/articles/'); if(r.ok){ const j= await r.json(); let list:any[] = Array.isArray(j)?j:(j.data||j.articles||[]); setArticles(list.filter(a=>a.status==='published').slice(0,4)); } })(),
-        (async()=>{ const r = await fetch('http://127.0.0.1:3000/pajar/public/articles/trending'); if(r.ok){ const j= await r.json(); let list:any[] = j.articles || j.data || (Array.isArray(j)?j:[]); setTrending(list.slice(0,5)); } })(),
-  (async()=>{ const uid = getUserIdentifier(); const r = await fetch(`http://127.0.0.1:3000/pajar/posts?user_id=${uid}&page=1&limit=6`); if(r.ok){ const j= await r.json(); let list:any[] = Array.isArray(j)? j : (j.posts || j.data?.posts || []); setPosts(list.slice(0,6)); } })()
+        (async()=>{ const r = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES)); if(r.ok){ const j= await r.json(); let list:any[] = Array.isArray(j)?j:(j.data||j.articles||[]); setArticles(list.filter(a=>a.status==='published').slice(0,4)); } })(),
+        (async()=>{ const r = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES_TRENDING)); if(r.ok){ const j= await r.json(); let list:any[] = j.articles || j.data || (Array.isArray(j)?j:[]); setTrending(list.slice(0,5)); } })(),
+  (async()=>{ const uid = getUserIdentifier(); const r = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}?user_id=${uid}&page=1&limit=6`)); if(r.ok){ const j= await r.json(); let list:any[] = Array.isArray(j)? j : (j.posts || j.data?.posts || []); setPosts(list.slice(0,6)); } })()
       ]);
     } finally { setRefreshing(false); }
   };
 
   const fmtDate = (s?:string) => s ? new Date(s).toLocaleDateString('id-ID',{ day:'numeric', month:'short' }) : '';
-  const firstImage = (a:any) => a?.images?.[0]?.path ? `http://127.0.0.1:3000${a.images[0].path}` : '/placeholder.svg';
+  const firstImage = (a:any) => a?.images?.[0]?.path ? buildImageUrl(a.images[0].path) : '/placeholder.svg';
 
   return (
     <div className="min-h-screen bg-background pt-16 pb-20">

@@ -1,4 +1,6 @@
 // Health Check Service
+import { API_CONFIG, buildApiUrl } from './api';
+
 export interface HealthStatus {
   status: 'ok' | 'maintenance' | 'error';
   uptime: number;
@@ -16,7 +18,7 @@ export interface HealthCheckResult {
 }
 
 class HealthCheckService {
-  private static readonly API_URL = 'https://api.fsu.my.id/pajar/health';
+  private static readonly API_URL = buildApiUrl(API_CONFIG.ENDPOINTS.HEALTH);
   private static readonly CACHE_KEY = 'health_check_cache';
   private static readonly CACHE_DURATION = 30 * 1000; // 30 seconds
   private static cache: { data: HealthStatus; timestamp: number } | null = null;
@@ -68,7 +70,7 @@ class HealthCheckService {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown health check error';
       
-      console.error('Health check error:', errorMessage);
+      // console.error('Health check error:', errorMessage);
 
       // In case of network error, assume maintenance mode for safety
       return {
@@ -102,7 +104,7 @@ class HealthCheckService {
     try {
       localStorage.setItem(this.CACHE_KEY, JSON.stringify(this.cache));
     } catch (error) {
-      console.warn('Failed to save health check to localStorage:', error);
+      // console.warn('Failed to save health check to localStorage:', error);
     }
   }
 
@@ -120,7 +122,7 @@ class HealthCheckService {
         }
       }
     } catch (error) {
-      console.warn('Failed to load health check from localStorage:', error);
+      // console.warn('Failed to load health check from localStorage:', error);
       localStorage.removeItem(this.CACHE_KEY);
     }
   }

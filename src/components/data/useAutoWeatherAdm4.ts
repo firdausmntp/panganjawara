@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { API_CONFIG, buildApiUrl } from '../../lib/api';
 
 /**
  * Hook untuk mendeteksi lokasi visitor via backend /pajar/location
@@ -17,7 +18,7 @@ export function useAutoWeatherAdm4() {
     let abort = false;
     (async () => {
       try {
-        const res = await fetch('http://127.0.0.1:3000/pajar/location');
+        const res = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.LOCATION));
         if (!res.ok) throw new Error('Status ' + res.status);
         const json = await res.json();
         if (abort) return;
@@ -41,7 +42,7 @@ export function useAutoWeatherAdm4() {
     (async () => {
       try {
         const q = encodeURIComponent(city);
-        const res = await fetch(`http://127.0.0.1:3000/pajar/wilayah/search?q=${q}`);
+        const res = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.WILAYAH.SEARCH}?q=${q}`));
         if (!res.ok) throw new Error('Status ' + res.status);
         const json = await res.json();
         if (abort) return;

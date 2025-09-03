@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { MarkdownRenderer } from "@/lib/markdown";
+import { API_CONFIG, buildApiUrl, buildImageUrl } from '../lib/api';
 
 interface Article {
   id: number;
@@ -102,7 +103,7 @@ const ArtikelDetail = () => {
   const fetchArticleDetail = async (articleId: string) => {
     try {
       setLoading(true);
-      const response = await fetch(`http://127.0.0.1:3000/pajar/public/articles/${articleId}`);
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES}/${articleId}`));
       if (!response.ok) {
         throw new Error('Failed to fetch article detail');
       }
@@ -110,7 +111,7 @@ const ArtikelDetail = () => {
       setArticle(data);
       
     } catch (error) {
-      console.error('Error fetching article detail:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memuat detail artikel dari server.",
@@ -125,13 +126,13 @@ const ArtikelDetail = () => {
   const fetchRelatedArticles = async () => {
     try {
       setLoadingRelated(true);
-      console.log('Fetching related articles...');
-      const response = await fetch('http://127.0.0.1:3000/pajar/public/articles?limit=10&status=published');
+      
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES}?limit=10&status=published`));
       if (!response.ok) {
         throw new Error('Failed to fetch related articles');
       }
       const data = await response.json();
-      console.log('Related articles response:', data);
+      
       
       // Handle different response structures
       let articles = [];
@@ -146,11 +147,11 @@ const ArtikelDetail = () => {
       // Filter out current article and get random selection
       const filteredArticles = articles.filter((art: Article) => art.id !== parseInt(id || '0'));
       const randomArticles = filteredArticles.sort(() => 0.5 - Math.random()).slice(0, 4);
-      console.log('Filtered related articles:', randomArticles);
+      
       setRelatedArticles(randomArticles);
       
     } catch (error) {
-      console.error('Error fetching related articles:', error);
+      
     } finally {
       setLoadingRelated(false);
     }
@@ -160,13 +161,13 @@ const ArtikelDetail = () => {
   const fetchEvents = async () => {
     try {
       setLoadingEvents(true);
-      console.log('Fetching events from API...');
-      const response = await fetch('http://127.0.0.1:3000/pajar/events/upcoming');
+      
+      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.EVENTS.UPCOMING));
       if (!response.ok) {
         throw new Error('Failed to fetch events');
       }
       const data = await response.json();
-      console.log('Events response:', data);
+      
       
       // Handle different response structures
       let eventsData = [];
@@ -178,10 +179,10 @@ const ArtikelDetail = () => {
         eventsData = data.events;
       }
       
-      console.log('Processed events data:', eventsData);
+      
       setEvents(eventsData);
     } catch (error) {
-      console.error('Error fetching events:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memuat data event dari server.",
@@ -205,7 +206,7 @@ const ArtikelDetail = () => {
   // Get article image URL
   const getArticleImage = (article: Article) => {
     if (article.images && article.images.length > 0) {
-      return `http://127.0.0.1:3000${article.images[0].path}`;
+      return buildImageUrl(article.images[0].path);
     }
     return '/placeholder.svg';
   };
@@ -291,7 +292,7 @@ const ArtikelDetail = () => {
 
     try {
       setLikeLoading(true);
-      const response = await fetch(`http://127.0.0.1:3000/pajar/public/articles/${article.id}/like`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES}/${article.id}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -327,7 +328,7 @@ const ArtikelDetail = () => {
         });
       }
     } catch (error) {
-      console.error('Error liking article:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memberikan like pada artikel",
@@ -345,7 +346,7 @@ const ArtikelDetail = () => {
     try {
       setShareLoading(true);
       // Track share in API
-      await fetch(`http://127.0.0.1:3000/pajar/public/articles/${article.id}/share`, {
+      await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES}/${article.id}/share`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -373,7 +374,7 @@ const ArtikelDetail = () => {
         shared_count: (prev.shared_count || 0) + 1
       } : null);
     } catch (error) {
-      console.error('Error sharing article:', error);
+      
       const url = window.location.href;
       toast({
         title: "Link Artikel",
@@ -870,7 +871,7 @@ const ArtikelDetail = () => {
                       {relatedArticle.images && relatedArticle.images.length > 0 ? (
                         <div className="relative w-full h-48 sm:h-52 overflow-hidden">
                           <img 
-                            src={`http://127.0.0.1:3000${relatedArticle.images[0].path}`}
+                            src={buildImageUrl(relatedArticle.images[0].path)}
                             alt={relatedArticle.title}
                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                           />
@@ -1155,7 +1156,7 @@ const ArtikelDetail = () => {
                           {selectedEvent.images.map((image) => (
                             <div key={image.id} className="relative">
                               <img 
-                                src={`http://127.0.0.1:3000${image.path}`}
+                                src={buildImageUrl(image.path)}
                                 alt={image.original_name}
                                 className="w-full h-24 object-cover rounded-lg"
                               />

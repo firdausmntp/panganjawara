@@ -1,4 +1,6 @@
 // Authentication Service
+import { API_CONFIG, buildApiUrl } from './api';
+
 export interface LoginRequest {
   username: string;
   password: string;
@@ -25,7 +27,7 @@ export interface AuthUser {
 }
 
 class AuthService {
-  private static readonly API_BASE = 'http://localhost:3000/pajar';
+  private static readonly API_BASE = API_CONFIG.BASE_URL;
   private static readonly TOKEN_KEY = 'adminToken';
   private static readonly USER_KEY = 'adminUser';
   private static readonly EXPIRES_KEY = 'tokenExpires';
@@ -66,7 +68,7 @@ class AuthService {
       };
 
     } catch (error) {
-      console.error('Login error:', error);
+      
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Login failed'
@@ -83,7 +85,7 @@ class AuthService {
     localStorage.setItem(this.EXPIRES_KEY, expirationTime.toString());
     localStorage.setItem('isAdminAuthenticated', 'true');
 
-    // console.log('Auth data stored successfully');
+    // 
   }
 
   // Check if user is authenticated
@@ -115,7 +117,7 @@ class AuthService {
       const userJson = localStorage.getItem(this.USER_KEY);
       return userJson ? JSON.parse(userJson) : null;
     } catch (error) {
-      console.error('Error parsing user data:', error);
+      
       return null;
     }
   }
@@ -170,7 +172,7 @@ class AuthService {
     localStorage.removeItem(this.EXPIRES_KEY);
     localStorage.removeItem('isAdminAuthenticated');
     
-    // console.log('User logged out successfully');
+    // 
   }
 
   // Refresh token (if API supports it)
@@ -190,7 +192,7 @@ class AuthService {
       // For now, just validate current token
       return this.isAuthenticated();
     } catch (error) {
-      console.error('Token refresh error:', error);
+      
       return false;
     }
   }

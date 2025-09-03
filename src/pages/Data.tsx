@@ -12,6 +12,7 @@ import WeatherForecast from "@/components/data/WeatherForecast";
 import { useProvinces } from "@/components/data/useProvinces";
 import { useDistricts } from "@/components/data/useDistricts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { API_CONFIG, buildApiUrl } from '../lib/api';
 
 const Data = () => {
   const [levelHarga, setLevelHarga] = useState(1); // 1 = produsen, 3 = konsumen
@@ -41,7 +42,7 @@ const Data = () => {
     let abort = false;
     (async () => {
       try {
-        const res = await fetch('http://127.0.0.1:3000/pajar/location');
+        const res = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.LOCATION));
         if (!res.ok) throw new Error('Status ' + res.status);
         const json = await res.json();
         if (!abort) setAutoLocation(json);
@@ -95,7 +96,7 @@ const Data = () => {
     (async () => {
       try {
         const q = encodeURIComponent(cityName);
-        const res = await fetch(`http://127.0.0.1:3000/pajar/wilayah/search?q=${q}`);
+        const res = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.WILAYAH.SEARCH}?q=${q}`));
         if (!res.ok) throw new Error('Status ' + res.status);
         const json = await res.json();
         const items: { kode: string; nama: string }[] = json.items || [];

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { parseMarkdown } from '@/lib/markdown';
+import { API_CONFIG, buildApiUrl, buildImageUrl } from '../lib/api';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -160,7 +161,7 @@ const AdminDashboard = () => {
       // Return truncated text
       return textOnly.length > maxLength ? textOnly.substring(0, maxLength) + '...' : textOnly;
     } catch (error) {
-      console.error('Error parsing markdown for preview:', error);
+      
       // Fallback to simple text truncation
       const fallback = content.replace(/\{\{[^}]*\}\}/g, '').replace(/\s+/g, ' ').trim();
       return fallback.length > maxLength ? fallback.substring(0, maxLength) + '...' : fallback;
@@ -214,7 +215,7 @@ const AdminDashboard = () => {
           break;
       }
     } catch (error) {
-      console.error('Error loading tab data:', error);
+      
     } finally {
       setTabLoading(false);
     }
@@ -358,26 +359,26 @@ const AdminDashboard = () => {
     }
 
     try {
-      console.log(`Making API call: ${method} ${endpoint}`);
-      const response = await fetch(`http://localhost:3000/pajar${endpoint}`, {
+      
+      const response = await fetch(buildApiUrl(endpoint), {
         method,
         headers,
         body: body ? JSON.stringify(body) : undefined,
       });
       
-      console.log(`API Response Status: ${response.status}`);
+      
       
       if (response.ok) {
         const data = await response.json();
-        console.log(`API Response Data:`, data);
+        
         return data;
       } else {
         const errorText = await response.text();
-        console.error(`API Error Response:`, errorText);
+        
         throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
       }
     } catch (error) {
-      console.error('API Error:', error);
+      
       throw error;
     }
   };
@@ -385,52 +386,52 @@ const AdminDashboard = () => {
   
   const loadData = async (section: string) => {
     try {
-      console.log(`🔄 Loading ${section} data...`);
+      
       let data;
       switch (section) {
         case 'dashboard':
           data = await apiCall('/stats/dashboard');
           setAdminData(prev => ({ ...prev, dashboardStats: data }));
-          console.log(`✅ Loaded dashboard stats:`, data);
+          
           break;
         case 'posts':
           data = await apiCall('/posts');
           
           const posts = data.posts || data || [];
           setAdminData(prev => ({ ...prev, posts: Array.isArray(posts) ? posts : [] }));
-          console.log(`✅ Loaded ${posts.length} posts`);
+          
           break;
         case 'articles':
           data = await apiCall('/articles/all');
           
           const articles = data.articles || data || [];
           setAdminData(prev => ({ ...prev, articles: Array.isArray(articles) ? articles : [] }));
-          console.log(`✅ Loaded ${articles.length} articles`);
+          
           break;
         case 'events':
           data = await apiCall('/events');
           
           const events = data.events || data || [];
           setAdminData(prev => ({ ...prev, events: Array.isArray(events) ? events : [] }));
-          console.log(`✅ Loaded ${events.length} events`);
+          
           break;
         case 'users':
           data = await apiCall('/auth/users');
           
           const users = data.users || data || [];
           setAdminData(prev => ({ ...prev, users: Array.isArray(users) ? users : [] }));
-          console.log(`✅ Loaded ${users.length} users`);
+          
           break;
         case 'comments':
           data = await apiCall('/comments');
           
           const comments = data.comments || data || [];
           setAdminData(prev => ({ ...prev, comments: Array.isArray(comments) ? comments : [] }));
-          console.log(`✅ Loaded ${comments.length} comments`);
+          
           break;
       }
     } catch (error) {
-      console.error(`❌ Failed to load ${section}:`, error);
+      
       
       switch (section) {
         case 'dashboard':
@@ -468,7 +469,7 @@ const AdminDashboard = () => {
       
       // Handle multipart form data for image upload
       if (eventData instanceof FormData) {
-        const response = await fetch('http://localhost:3000/pajar/events', {
+        const response = await fetch(buildApiUrl('/events'), {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -563,7 +564,7 @@ const AdminDashboard = () => {
           loadData('users')
         ]);
       } catch (error) {
-        console.error('Error loading initial data:', error);
+        
       } finally {
         setIsLoading(false);
       }
@@ -574,160 +575,9 @@ const AdminDashboard = () => {
 
   
   useEffect(() => {
-    
-    if (adminData.events.length === 0) {
-      const sampleEvents: Event[] = [
-        {
-          id: 1,
-          title: "Workshop React.js untuk Pemula",
-          description: "Belajar React.js dari dasar hingga mahir dengan hands-on practice. Workshop ini akan membahas konsep-konsep fundamental React seperti components, props, state, dan hooks.",
-          event_date: "2025-09-15T09:00:00.000Z",
-          duration_minutes: 480,
-          location: "Virtual Meeting (Zoom)",
-          max_participants: 50,
-          status: "published",
-          priority: "normal"
-        },
-        {
-          id: 2,
-          title: "Webinar: Tren AI dalam Web Development",
-          description: "Diskusi mendalam tentang bagaimana AI mengubah landscape web development dan tools-tools AI yang bisa membantu developer.",
-          event_date: "2025-09-20T14:00:00.000Z",
-          duration_minutes: 120,
-          location: "Online",
-          max_participants: 100,
-          status: "published",
-          priority: "high"
-        },
-        {
-          id: 3,
-          title: "Bootcamp Node.js Backend Development",
-          description: "Intensive bootcamp untuk menguasai Node.js backend development dengan Express.js, database integration, dan deployment.",
-          event_date: "2025-10-01T08:00:00.000Z",
-          duration_minutes: 2880, 
-          location: "Jakarta Convention Center",
-          max_participants: 30,
-          status: "draft",
-          priority: "urgent"
-        }
-      ];
-      setAdminData(prev => ({ ...prev, events: sampleEvents }));
-    }
-
-    
-    if (adminData.users.length === 0) {
-      const sampleUsers: User[] = [
-        {
-          id: 1,
-          username: "ahmad.sutanto",
-          email: "ahmad.sutanto@example.com",
-          role: "admin",
-          created_at: "2024-01-15T08:00:00.000Z",
-          updated_at: "2024-01-15T08:00:00.000Z",
-          last_login: "2025-09-01T10:30:00.000Z"
-        },
-        {
-          id: 2,
-          username: "sari.wijayanti",
-          email: "sari.wijayanti@example.com",
-          role: "editor",
-          created_at: "2024-03-20T09:15:00.000Z",
-          updated_at: "2024-03-20T09:15:00.000Z",
-          last_login: "2025-08-30T14:20:00.000Z"
-        },
-        {
-          id: 3,
-          username: "rizki.pratama",
-          email: "rizki.pratama@example.com",
-          role: "user",
-          created_at: "2024-06-10T11:00:00.000Z",
-          updated_at: "2024-06-10T11:00:00.000Z",
-          last_login: undefined
-        }
-      ];
-      if (AuthService.canAccess('users')) {
-        setAdminData(prev => ({ ...prev, users: sampleUsers }));
-      }
-    }
-
-    
-    if (adminData.articles.length === 0) {
-      const sampleArticles: Article[] = [
-        {
-          id: 1,
-          title: "Panduan Lengkap Web Development dengan Node.js",
-          content: "Node.js telah menjadi salah satu teknologi backend paling populer di dunia pengembangan web modern. Dalam artikel ini, kita akan membahas secara mendalam bagaimana memulai journey sebagai Node.js developer.\n\n{{image:1}}\n\n## Apa itu Node.js?\n\nNode.js adalah runtime environment untuk JavaScript yang memungkinkan kita menjalankan JavaScript di server-side. Dibangun di atas V8 JavaScript engine dari Chrome, Node.js memberikan performa yang sangat baik untuk aplikasi web modern.\n\n## Keunggulan Node.js\n\n1. **Single Language**: Menggunakan JavaScript di frontend dan backend\n2. **Non-blocking I/O**: Asynchronous operations yang efisien\n3. **NPM Ecosystem**: Package manager dengan jutaan library\n4. **Scalability**: Mudah di-scale untuk aplikasi besar\n5. **Community Support**: Komunitas developer yang besar dan aktif\n\n{{image:2}}\n\n## Getting Started\n\nUntuk memulai dengan Node.js, Anda perlu menginstall Node.js dari website resmi. Setelah itu, Anda bisa mulai dengan membuat file JavaScript sederhana dan menjalankannya dengan command `node filename.js`.\n\n## Framework Populer\n\nBeberapa framework Node.js yang populer:\n- **Express.js**: Minimal dan fleksibel web framework\n- **Koa.js**: Framework dari tim Express yang lebih modern\n- **NestJS**: Framework enterprise dengan TypeScript\n- **Fastify**: Framework yang fokus pada performance\n\n## Best Practices\n\n1. Gunakan environment variables untuk konfigurasi\n2. Implement proper error handling\n3. Gunakan middleware untuk cross-cutting concerns\n4. Structure project dengan baik\n5. Implement logging dan monitoring\n6. Security first approach\n\nNode.js memang memiliki learning curve, tapi dengan dedikasi dan praktek yang konsisten, Anda akan bisa menguasainya dengan baik.",
-          excerpt: "Pelajari Node.js dari dasar hingga advanced untuk menjadi fullstack JavaScript developer yang handal.",
-          author: "Ahmad Sutanto",
-          status: "published",
-          view_count: 6,
-          like_count: 0,
-          featured: 1,
-          tags: "nodejs,javascript,backend,tutorial",
-          created_at: "2025-09-01T12:07:22.000Z",
-          updated_at: "2025-09-01T12:07:22.000Z",
-          published_at: "2025-09-01T12:07:22.000Z",
-          shared_count: 0,
-          image_count: 2,
-          images: [
-            {
-              id: 1,
-              entity_type: "article",
-              entity_id: 1,
-              filename: "nodejs-banner.png",
-              original_name: "Node.js Development Banner",
-              mimetype: "image/png",
-              size: 5328,
-              path: "/pajar/uploads/nodejs-banner.png",
-              created_at: "2025-09-01T12:07:22.000Z"
-            },
-            {
-              id: 2,
-              entity_type: "article",
-              entity_id: 1,
-              filename: "nodejs-frameworks.png",
-              original_name: "Node.js Frameworks Comparison",
-              mimetype: "image/png",
-              size: 20773,
-              path: "/pajar/uploads/nodejs-frameworks.png",
-              created_at: "2025-09-01T12:07:22.000Z"
-            }
-          ]
-        },
-        {
-          id: 2,
-          title: "React Hooks: Panduan Lengkap untuk Developer",
-          content: "React Hooks telah mengubah cara kita menulis component di React. Dengan Hooks, functional component bisa memiliki state dan lifecycle methods.\n\n{{image}}\n\n## Apa itu React Hooks?\n\nHooks adalah fungsi spesial yang memungkinkan kita untuk \"hook into\" React features dari functional component. Hooks dimulai dengan kata 'use' seperti useState, useEffect, dll.\n\n## Hooks Dasar\n\n### useState\n```javascript\nconst [count, setCount] = useState(0);\n```\n\n### useEffect\n```javascript\nuseEffect(() => {\n  document.title = `Count: ${count}`;\n}, [count]);\n```\n\n## Custom Hooks\n\nAnda juga bisa membuat custom hooks untuk logic yang bisa digunakan ulang:\n\n```javascript\nfunction useCounter(initialValue = 0) {\n  const [count, setCount] = useState(initialValue);\n  \n  const increment = () => setCount(count + 1);\n  const decrement = () => setCount(count - 1);\n  \n  return { count, increment, decrement };\n}\n```\n\nHooks memberikan fleksibilitas yang luar biasa dalam pengembangan React applications!",
-          excerpt: "Pelajari React Hooks dari dasar hingga custom hooks untuk komponen yang lebih powerful.",
-          author: "Sari Wijayanti",
-          status: "published",
-          view_count: 12,
-          like_count: 3,
-          featured: 0,
-          tags: "react,hooks,javascript,frontend",
-          created_at: "2025-08-28T10:30:00.000Z",
-          updated_at: "2025-08-28T10:30:00.000Z",
-          published_at: "2025-08-28T10:30:00.000Z",
-          shared_count: 1,
-          image_count: 1,
-          images: [
-            {
-              id: 3,
-              entity_type: "article",
-              entity_id: 2,
-              filename: "react-hooks-diagram.png",
-              original_name: "React Hooks Lifecycle Diagram",
-              mimetype: "image/png",
-              size: 15420,
-              path: "/pajar/uploads/react-hooks-diagram.png",
-              created_at: "2025-08-28T10:30:00.000Z"
-            }
-          ]
-        }
-      ];
-      setAdminData(prev => ({ ...prev, articles: sampleArticles }));
-    }
-  }, [adminData.events.length, adminData.users.length, adminData.articles.length]);
+    // Initialize empty data - remove all sample/fake data
+    // In a real application, this would load data from API calls
+  }, []);
 
   const handleLogout = () => {
     AuthService.logout();
@@ -783,7 +633,7 @@ const AdminDashboard = () => {
       }));
       
     } catch (error) {
-      console.error('Failed to delete:', error);
+      
     } finally {
       setActionLoading(prev => ({ ...prev, [`delete-${deleteDialog.type}-${deleteDialog.id}`]: false }));
       setDeleteDialog({ isOpen: false, type: null, id: null, title: '' });
@@ -806,7 +656,7 @@ const AdminDashboard = () => {
         }));
       }
     } catch (error) {
-      console.error('Failed to fetch article:', error);
+      
       toast({
         title: 'Error',
         description: 'Failed to load article details',
@@ -832,7 +682,7 @@ const AdminDashboard = () => {
         }));
       }
     } catch (error) {
-      console.error('Failed to fetch article:', error);
+      
       toast({
         title: 'Error',
         description: 'Failed to load article for editing',
@@ -858,7 +708,7 @@ const AdminDashboard = () => {
         }));
       }
     } catch (error) {
-      console.error('Failed to fetch event:', error);
+      
       toast({
         title: 'Error',
         description: 'Failed to load event details',
@@ -884,7 +734,7 @@ const AdminDashboard = () => {
         }));
       }
     } catch (error) {
-      console.error('Failed to fetch event:', error);
+      
       toast({
         title: 'Error',
         description: 'Failed to load event for editing',
@@ -1015,7 +865,7 @@ const AdminDashboard = () => {
       if (modals.articleForm.mode === 'create') {
         
         if (articleData instanceof FormData) {
-          const response = await fetch('http://localhost:3000/pajar/articles', {
+          const response = await fetch(buildApiUrl('/articles'), {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -1030,7 +880,7 @@ const AdminDashboard = () => {
 
           // Handle image ID mapping for new articles
           const result = await response.json();
-          console.log('Article creation response:', result);
+          
 
           // If we have uploaded images and the response contains the created images
           if (result.images && result.images.length > 0) {
@@ -1058,11 +908,11 @@ const AdminDashboard = () => {
 
             // If we made changes, update the article content
             if (hasChanges) {
-              console.log('Updating article content with real image IDs...');
+              
               const updateFormData = new FormData();
               updateFormData.append('content', updatedContent);
 
-              const updateResponse = await fetch(`http://localhost:3000/pajar/articles/${result.id}`, {
+              const updateResponse = await fetch(buildApiUrl(`/articles/${result.id}`), {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`
@@ -1071,7 +921,7 @@ const AdminDashboard = () => {
               });
 
               if (!updateResponse.ok) {
-                console.warn('Failed to update article content with real image IDs');
+                
               }
             }
           }
@@ -1086,7 +936,7 @@ const AdminDashboard = () => {
       } else {
         
         if (articleData instanceof FormData) {
-          const response = await fetch(`http://localhost:3000/pajar/articles/${articleData.get('id')}`, {
+          const response = await fetch(buildApiUrl(`/articles/${articleData.get('id')}`), {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -1125,7 +975,7 @@ const AdminDashboard = () => {
       if (modals.eventForm.mode === 'create') {
         // Handle multipart form data for image upload
         if (eventData instanceof FormData) {
-          const response = await fetch('http://localhost:3000/pajar/events', {
+          const response = await fetch(buildApiUrl('/events'), {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -1140,7 +990,7 @@ const AdminDashboard = () => {
 
           // Handle image ID mapping for new events
           const result = await response.json();
-          console.log('Event creation response:', result);
+          
 
           // If we have uploaded images and the response contains the created images
           if (result.images && result.images.length > 0) {
@@ -1168,11 +1018,11 @@ const AdminDashboard = () => {
 
             // If we made changes, update the event description
             if (hasChanges) {
-              console.log('Updating event description with real image IDs...');
+              
               const updateFormData = new FormData();
               updateFormData.append('description', updatedDescription);
 
-              const updateResponse = await fetch(`http://localhost:3000/pajar/events/${result.id}`, {
+              const updateResponse = await fetch(buildApiUrl(`/events/${result.id}`), {
                 method: 'PUT',
                 headers: {
                   'Authorization': `Bearer ${token}`
@@ -1181,7 +1031,7 @@ const AdminDashboard = () => {
               });
 
               if (!updateResponse.ok) {
-                console.warn('Failed to update event with real image IDs');
+                
               }
             }
           }
@@ -1196,7 +1046,7 @@ const AdminDashboard = () => {
       } else {
         // Handle update - can also be FormData for new images
         if (eventData instanceof FormData) {
-          const response = await fetch(`http://localhost:3000/pajar/events/${eventData.get('id')}`, {
+          const response = await fetch(buildApiUrl(`/events/${eventData.get('id')}`), {
             method: 'PUT',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -1287,7 +1137,7 @@ const AdminDashboard = () => {
       const stats = await apiCall(`/posts/${postId}/stats`);
       return stats;
     } catch (error) {
-      console.error('Failed to get post stats:', error);
+      
       return null;
     }
   };

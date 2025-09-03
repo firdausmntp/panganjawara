@@ -388,7 +388,7 @@ const AIArticleGenerator: React.FC<AIArticleGeneratorProps> = ({
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.warn(`Imagen API error for "${description}":`, errorData);
+          
           // Continue with placeholder instead of failing completely
           generatedImages.push(`https://picsum.photos/800/450?random=${Math.random()}`);
           continue;
@@ -411,7 +411,7 @@ const AIArticleGenerator: React.FC<AIArticleGeneratorProps> = ({
         await new Promise(resolve => setTimeout(resolve, 1000));
         
       } catch (error) {
-        console.warn(`Failed to generate image for "${description}":`, error);
+        
         // Use placeholder image as fallback
         generatedImages.push(`https://picsum.photos/800/450?random=${Math.random()}`);
       }
@@ -467,7 +467,7 @@ const AIArticleGenerator: React.FC<AIArticleGeneratorProps> = ({
         await new Promise(resolve => setTimeout(resolve, 1500));
         
       } catch (error) {
-        console.warn(`Image generation failed for "${description}":`, error);
+        
         generatedImages.push(`https://picsum.photos/800/450?random=${Math.random()}`);
       }
     }
@@ -510,7 +510,7 @@ const AIArticleGenerator: React.FC<AIArticleGeneratorProps> = ({
           try {
             images = await generateImagesAlternative(articleData.suggested_images || []);
           } catch (imgError) {
-            console.warn('Imagen generation failed, using placeholders:', imgError);
+            
             // Use placeholders if Imagen fails
             images = Array.from({ length: params.imageCount }, (_, i) => 
               `https://picsum.photos/800/450?random=${Math.random()}`
@@ -559,7 +559,7 @@ const AIArticleGenerator: React.FC<AIArticleGeneratorProps> = ({
       }
 
     } catch (err: any) {
-      console.error('Article generation error:', err);
+      
       setError(`Gagal membuat artikel: ${err.message}`);
       toast({
         title: "Gagal membuat artikel",

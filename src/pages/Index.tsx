@@ -15,6 +15,7 @@ import { Sparkles } from 'lucide-react';
 import { useCommodityPrices } from '@/components/data/useCommodityPrices';
 import { useProvinces } from '@/components/data/useProvinces';
 import { useDistricts } from '@/components/data/useDistricts';
+import { API_CONFIG, buildApiUrl, buildImageUrl } from '../lib/api';
 
 interface ArticleLite { id: number; title: string; author?: string; created_at?: string; excerpt?: string; content?: string; view_count?: number; like_count?: number; images?: { path: string }[]; };
 interface PostLite { id: number; title: string; content: string; author: string; created_at?: string; like_count?: number; view_count?: number; images?: any[]; };
@@ -65,7 +66,7 @@ const Index = () => {
     (async () => {
       try {
         setLoadingArticles(true);
-        const res = await fetch('http://127.0.0.1:3000/pajar/public/articles/');
+        const res = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES));
         if (!res.ok) throw new Error('Status '+res.status);
         const json = await res.json();
         let list: any[] = Array.isArray(json) ? json : (json.data || json.articles || []);
@@ -82,7 +83,7 @@ const Index = () => {
   useEffect(()=> {
     let abort=false;
     (async()=>{
-      try { setLoadingEvents(true); const r= await fetch('http://127.0.0.1:3000/pajar/events/upcoming'); if(!r.ok) throw new Error(); const j= await r.json(); let list:any[] = Array.isArray(j)? j : (j.events||j.data||[]); if(!abort) setEvents(list.slice(0,4)); }
+      try { setLoadingEvents(true); const r= await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.EVENTS.UPCOMING)); if(!r.ok) throw new Error(); const j= await r.json(); let list:any[] = Array.isArray(j)? j : (j.events||j.data||[]); if(!abort) setEvents(list.slice(0,4)); }
       catch { if(!abort) setEvents([]);} finally { if(!abort) setLoadingEvents(false);} })();
     return ()=>{abort=true};
   },[]);
@@ -93,7 +94,7 @@ const Index = () => {
     (async () => {
       try {
         setLoadingTrending(true);
-        const res = await fetch('http://127.0.0.1:3000/pajar/public/articles/trending');
+        const res = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES_TRENDING));
         if (!res.ok) throw new Error('Status '+res.status);
         const json = await res.json();
         let list: any[] = json.articles || json.data || (Array.isArray(json)?json:[]);
@@ -113,7 +114,7 @@ const Index = () => {
       try {
         setLoadingPosts(true);
         const uid = getUserIdentifier();
-        const res = await fetch(`http://127.0.0.1:3000/pajar/posts?user_id=${uid}&page=1&limit=6`);
+        const res = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}?user_id=${uid}&page=1&limit=6`));
         if (!res.ok) throw new Error('Status '+res.status);
         const json = await res.json();
         let list: any[] = Array.isArray(json) ? json : (json.posts || json.data?.posts || []);
@@ -126,7 +127,7 @@ const Index = () => {
   }, []);
 
   const formatDate = (s?: string) => s ? new Date(s).toLocaleDateString('id-ID', { day:'numeric', month:'short' }) : '';
-  const firstImage = (a: any) => a?.images?.[0]?.path ? `http://127.0.0.1:3000${a.images[0].path}` : '/placeholder.svg';
+  const firstImage = (a: any) => a?.images?.[0]?.path ? buildImageUrl(a.images[0].path) : '/placeholder.svg';
 
   return (
     <div className="min-h-screen bg-background pt-16 sm:pt-20">
@@ -344,7 +345,7 @@ const Index = () => {
                 <Card key={ev.id} className="group overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer bg-white border-0 shadow-md" onClick={()=>navigate('/komunitas')}>
                   <div className="relative">
                     {ev.images?.[0]?.path ? (
-                      <img src={`http://127.0.0.1:3000${ev.images[0].path}`} alt={ev.title} className="w-full h-36 object-cover group-hover:scale-110 transition-transform duration-300" />
+                      <img src={buildImageUrl(ev.images[0].path)} alt={ev.title} className="w-full h-36 object-cover group-hover:scale-110 transition-transform duration-300" />
                     ) : (
                       <div className="w-full h-36 bg-gradient-to-br from-emerald-100 to-blue-100 flex items-center justify-center">
                         <Calendar className="w-12 h-12 text-emerald-600 opacity-40" />

@@ -14,10 +14,6 @@ const NotFound = () => {
     const currentPath = location.pathname;
     
     // Log 404 error
-    console.error(
-      "404 Error: User attempted to access non-existent route:",
-      currentPath
-    );
     
     // Check for suspicious activity and log
     const isSuspicious = checkSuspiciousActivity(currentPath);

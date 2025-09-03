@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, MapPin, Users, Eye, Edit2, Trash2, Upload, X, Image as ImageIcon, Move, Video, Link, Key, Sparkles } from 'lucide-react';
 import { MarkdownRenderer } from '@/lib/markdown';
 import { useToast } from '@/hooks/use-toast';
+import { buildImageUrl } from '../../lib/api';
 
 // Article Detail Modal
 interface ArticleDetailModalProps {
@@ -98,7 +99,7 @@ export const ArticleDetailModal = ({ article, isOpen, onClose, onEdit, onDelete 
                 {article?.images?.map((image) => (
                   <div key={image.id} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
                     <img 
-                      src={`http://localhost:3000${image.path}`}
+                      src={buildImageUrl(image.path)}
                       alt={image.original_name}
                       className="w-full h-32 object-cover rounded-md mb-2"
                     />
@@ -349,7 +350,7 @@ export const EventDetailModal = ({ event, isOpen, onClose, onEdit, onDelete }: E
                 {event.images.map((image: any) => (
                   <div key={image.id} className="group relative bg-gray-100 rounded-2xl overflow-hidden aspect-video">
                     <img
-                      src={`http://localhost:3000${image.path}`}
+                      src={buildImageUrl(image.path)}
                       alt={image.original_name}
                       className="w-full h-full object-cover transition-transform group-hover:scale-105"
                       onError={(e) => {
@@ -546,7 +547,7 @@ export const ArticleFormModal = ({ article, isOpen, onClose, onSave, mode }: Art
             setImagePreviews(prev => [...prev, { file, url, id }]);
             newImageIds.push(id);
           } catch (fetchError) {
-            console.warn('Failed to fetch AI image:', imageUrl, fetchError);
+            
           }
         }
         
@@ -569,7 +570,7 @@ export const ArticleFormModal = ({ article, isOpen, onClose, onSave, mode }: Art
       });
       
     } catch (error) {
-      console.error('Error processing AI images:', error);
+      
     }
   };
 
@@ -617,7 +618,7 @@ export const ArticleFormModal = ({ article, isOpen, onClose, onSave, mode }: Art
       await onSave(formDataToSend);
       onClose();
     } catch (error) {
-      console.error('Error saving article:', error);
+      
       toast({
         title: 'Error',
         description: 'Failed to save article. Please try again.',
@@ -713,7 +714,7 @@ export const ArticleFormModal = ({ article, isOpen, onClose, onSave, mode }: Art
                     {article.images.map((image) => (
                       <div key={image.id} className="bg-white rounded-lg p-2 border border-gray-200">
                         <img 
-                          src={`http://localhost:3000${image.path}`}
+                          src={buildImageUrl(image.path)}
                           alt={image.original_name}
                           className="w-full h-20 object-cover rounded mb-2"
                         />
@@ -1342,7 +1343,7 @@ export const EventFormModal = ({ event, isOpen, onClose, onSave, mode }: EventFo
                     <div key={`existing-${image.id}`} className="relative group">
                       <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 border border-green-200">
                         <img 
-                          src={`http://localhost:3000${image.path}`}
+                          src={buildImageUrl(image.path)}
                           alt={image.original_name}
                           className="w-full h-full object-cover"
                           onError={(e) => {

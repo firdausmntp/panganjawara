@@ -1,4 +1,6 @@
-// Simple Markdown parser utility with image support
+import { buildImageUrl } from './api';
+
+// Markdown with Image Support
 export const parseMarkdown = (text: string, images?: Array<{
   id: number;
   filename: string;
@@ -48,7 +50,7 @@ export const parseMarkdown = (text: string, images?: Array<{
       
       if (image) {
         const token = `__IMAGE_TOKEN_${imageId.replace(/[^a-zA-Z0-9]/g, '_')}__`;
-        imageTokens[token] = `<div class="my-6 text-center"><img src="http://127.0.0.1:3000${image.path}" alt="${image.original_name}" class="w-full max-w-full mx-auto rounded-lg shadow-lg border border-gray-200 transition-transform hover:scale-105" loading="lazy" /><p class="image-caption text-sm text-gray-500 text-center mt-2 italic">${image.original_name}</p></div>`;
+        imageTokens[token] = `<div class="my-6 text-center"><img src="${buildImageUrl(image.path)}" alt="${image.original_name}" class="w-full max-w-full mx-auto rounded-lg shadow-lg border border-gray-200 transition-transform hover:scale-105" loading="lazy" /></div>`;
         return token;
       }
       
@@ -64,7 +66,7 @@ export const parseMarkdown = (text: string, images?: Array<{
       );
       if (image) {
         const token = `__IMAGE_TOKEN_${filename.replace(/[^a-zA-Z0-9]/g, '_')}__`;
-        imageTokens[token] = `<div class="my-6 text-center"><img src="http://127.0.0.1:3000${image.path}" alt="${image.original_name}" class="w-full max-w-full mx-auto rounded-lg shadow-lg border border-gray-200 transition-transform hover:scale-105" loading="lazy" /><p class="image-caption text-sm text-gray-500 text-center mt-2 italic">${image.original_name}</p></div>`;
+        imageTokens[token] = `<div class="my-6 text-center"><img src="${buildImageUrl(image.path)}" alt="${image.original_name}" class="w-full max-w-full mx-auto rounded-lg shadow-lg border border-gray-200 transition-transform hover:scale-105" loading="lazy" /></div>`;
         return token;
       }
       return match;
@@ -75,7 +77,7 @@ export const parseMarkdown = (text: string, images?: Array<{
       if (images[0]) {
         const image = images[0];
         const token = `__IMAGE_TOKEN_FIRST__`;
-        imageTokens[token] = `<div class="my-6 text-center"><img src="http://127.0.0.1:3000${image.path}" alt="${image.original_name}" class="w-full max-w-full mx-auto rounded-lg shadow-lg border border-gray-200 transition-transform hover:scale-105" loading="lazy" /><p class="image-caption text-sm text-gray-500 text-center mt-2 italic">${image.original_name}</p></div>`;
+        imageTokens[token] = `<div class="my-6 text-center"><img src="${buildImageUrl(image.path)}" alt="${image.original_name}" class="w-full max-w-full mx-auto rounded-lg shadow-lg border border-gray-200 transition-transform hover:scale-105" loading="lazy" /></div>`;
         return token;
       }
       return '';

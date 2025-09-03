@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { API_CONFIG, buildApiUrl, buildImageUrl } from '../lib/api';
 
 interface Article {
   id: number;
@@ -68,7 +69,7 @@ const Edukasi = () => {
   const fetchArticles = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://127.0.0.1:3000/pajar/public/articles/');
+      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES));
       if (!response.ok) {
         throw new Error('Failed to fetch articles');
       }
@@ -83,13 +84,13 @@ const Edukasi = () => {
       } else if (data.articles && Array.isArray(data.articles)) {
         articles = data.articles;
       } else {
-        console.error('Unexpected API response structure:', data);
+        
         articles = [];
       }
       
       setArticles(articles.filter((article: Article) => article.status === 'published'));
     } catch (error) {
-      console.error('Error fetching articles:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memuat artikel dari server.",
@@ -106,7 +107,7 @@ const Edukasi = () => {
     try {
       setFeaturedLoading(true);
       // Update to trending endpoint as source of featured content
-      const response = await fetch('http://localhost:3000/pajar/public/articles/trending');
+      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES_TRENDING));
       if (!response.ok) {
         throw new Error('Failed to fetch trending articles');
       }
@@ -122,13 +123,13 @@ const Edukasi = () => {
       } else if (data.data && Array.isArray(data.data)) {
         articles = data.data;
       } else {
-        console.error('Unexpected trending API response structure:', data);
+        
         articles = [];
       }
       
       setFeaturedArticles(articles);
     } catch (error) {
-      console.error('Error fetching trending articles:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memuat artikel trending dari server.",
@@ -157,7 +158,7 @@ const Edukasi = () => {
   // Get article image URL
   const getArticleImage = (article: Article) => {
     if (article.images && article.images.length > 0) {
-      return `http://127.0.0.1:3000${article.images[0].path}`;
+      return buildImageUrl(article.images[0].path);
     }
     return '/placeholder.svg';
   };
@@ -174,7 +175,7 @@ const Edukasi = () => {
   // Handle like article
   const handleLikeArticle = async (articleId: number) => {
     try {
-      const response = await fetch(`http://127.0.0.1:3000/pajar/public/articles/${articleId}/like`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES}/${articleId}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -215,7 +216,7 @@ const Edukasi = () => {
         });
       }
     } catch (error) {
-      console.error('Error liking article:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memberikan like pada artikel",
@@ -228,7 +229,7 @@ const Edukasi = () => {
   const handleShareArticle = async (articleId: number, title: string) => {
     try {
       // Track share in API
-      await fetch(`http://127.0.0.1:3000/pajar/public/articles/${articleId}/share`, {
+      await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.PUBLIC.ARTICLES}/${articleId}/share`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -250,7 +251,7 @@ const Edukasi = () => {
         });
       }
     } catch (error) {
-      console.error('Error sharing article:', error);
+      
       const url = `${window.location.origin}/edukasi/artikel/${articleId}`;
       toast({
         title: "Link Artikel",

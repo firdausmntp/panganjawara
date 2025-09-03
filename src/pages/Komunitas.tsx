@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { parseMarkdown } from "@/lib/markdown";
+import { API_CONFIG, buildApiUrl, buildImageUrl } from '../lib/api';
 
 interface Post {
   id: number;
@@ -471,7 +472,7 @@ const Komunitas = () => {
       setPaginationLoading(page > 1);
       
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts?user_id=${userIdentifier}&page=${page}&limit=${limit}`);
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}?user_id=${userIdentifier}&page=${page}&limit=${limit}`));
       
       if (response.ok) {
         const data = await response.json();
@@ -582,7 +583,7 @@ const Komunitas = () => {
         setTopContributors(calculatedContributors);
       }
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memuat data komunitas",
@@ -598,7 +599,7 @@ const Komunitas = () => {
   const fetchPostDetail = async (postId: number) => {
     try {
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${postId}?user_id=${userIdentifier}`);
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${postId}?user_id=${userIdentifier}`));
       if (response.ok) {
         const postDetail = await response.json();
         
@@ -616,7 +617,7 @@ const Komunitas = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching post detail:', error);
+      
       // Fallback to existing post data
       const post = posts.find(p => p.id === postId);
       if (post) {
@@ -632,7 +633,7 @@ const Komunitas = () => {
     try {
       setTrendingLoading(true);
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://127.0.0.1:3000/pajar/stats/popular/all?user_id=${userIdentifier}`);
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.STATS.POPULAR}/all?user_id=${userIdentifier}`));
       if (response.ok) {
         const result = await response.json();
         if (result.message === "Popular content retrieved successfully" && result.data) {
@@ -640,7 +641,7 @@ const Komunitas = () => {
         }
       }
     } catch (error) {
-      console.error('Error fetching popular content:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memuat konten trending",
@@ -653,13 +654,13 @@ const Komunitas = () => {
 
   const fetchUpcomingEvents = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:3000/pajar/events/upcoming');
+      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.EVENTS.UPCOMING));
       if (response.ok) {
         const events = await response.json();
         setUpcomingEvents(events);
       }
     } catch (error) {
-      console.error('Error fetching upcoming events:', error);
+      
     }
   };
 
@@ -693,7 +694,7 @@ const Komunitas = () => {
         formData.append('images', image);
       });
 
-      const response = await fetch('http://127.0.0.1:3000/pajar/posts', {
+      const response = await fetch(buildApiUrl(API_CONFIG.ENDPOINTS.POSTS), {
         method: 'POST',
         body: formData 
       });
@@ -724,7 +725,7 @@ const Komunitas = () => {
         throw new Error('Failed to post');
       }
     } catch (error) {
-      console.error('Error posting:', error);
+      
       toast({
         title: "Error",
         description: "Gagal mempublikasikan postingan",
@@ -819,7 +820,7 @@ const Komunitas = () => {
       if (diffInDays === 1) return "1 hari yang lalu";
       return `${diffInDays} hari yang lalu`;
     } catch (error) {
-      console.error('Error formatting date:', error);
+      
       return "Tanggal tidak valid";
     }
   };
@@ -835,7 +836,7 @@ const Komunitas = () => {
     
     
     if (typeof post.images[0] === 'object' && post.images[0] !== null && 'path' in post.images[0]) {
-      return (post.images as Array<{path: string}>).map(img => `http://127.0.0.1:3000${img.path}`);
+      return (post.images as Array<{path: string}>).map(img => buildImageUrl(img.path));
     }
     
     
@@ -860,7 +861,7 @@ const Komunitas = () => {
   const handleLikePost = async (postId: number) => {
     try {
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${postId}/like`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${postId}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -932,7 +933,7 @@ const Komunitas = () => {
         throw new Error('Failed to update like');
       }
     } catch (error) {
-      console.error('Error updating like:', error);
+      
       toast({
         title: "Error",
         description: "Failed to update like status",
@@ -945,7 +946,7 @@ const Komunitas = () => {
   const handleLikeArticle = async (articleId: number) => {
     try {
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://localhost:3000/pajar/articles/${articleId}/like`, {
+      const response = await fetch(buildApiUrl(`/articles/${articleId}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -980,7 +981,7 @@ const Komunitas = () => {
         throw new Error('Failed to update article like');
       }
     } catch (error) {
-      console.error('Error updating article like:', error);
+      
       toast({
         title: "Error",
         description: "Failed to update article like status",
@@ -992,7 +993,7 @@ const Komunitas = () => {
   const handleLikeComment = async (commentId: number) => {
     try {
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://127.0.0.1:3000/pajar/comments/${commentId}/like`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.COMMENTS}/${commentId}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1026,7 +1027,7 @@ const Komunitas = () => {
         throw new Error('Failed to update comment like');
       }
     } catch (error) {
-      console.error('Error updating comment like:', error);
+      
       toast({
         title: "Error",
         description: "Failed to update comment like status",
@@ -1044,7 +1045,7 @@ const Komunitas = () => {
       const post = posts.find(p => p.id === postId) || selectedPost;
       const postTitle = post?.title || "Post Komunitas";
       
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${postId}/share`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${postId}/share`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1088,7 +1089,7 @@ const Komunitas = () => {
         throw new Error('Failed to share post');
       }
     } catch (error) {
-      console.error('Error sharing post:', error);
+      
       toast({
         title: "Error",
         description: "Failed to share post",
@@ -1100,7 +1101,7 @@ const Komunitas = () => {
   
   const fetchPostComments = async (postId: number) => {
     try {
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${postId}/comments`);
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${postId}/comments`));
       if (response.ok) {
         const comments = await response.json();
         setPostComments(comments || []);
@@ -1108,7 +1109,7 @@ const Komunitas = () => {
         setPostComments([]);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      
       setPostComments([]);
     }
   };
@@ -1127,7 +1128,7 @@ const Komunitas = () => {
     try {
       setIsCommenting(true);
       
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${postId}/comments`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${postId}/comments`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -1183,7 +1184,7 @@ const Komunitas = () => {
         throw new Error('Failed to add comment');
       }
     } catch (error) {
-      console.error('Error adding comment:', error);
+      
       toast({
         title: "Error",
         description: "Gagal menambahkan komentar",
@@ -1516,13 +1517,13 @@ const Komunitas = () => {
                 {selectedEvent.images.map((image, imgIndex) => (
                   <div key={imgIndex} className="relative rounded-lg overflow-hidden group cursor-pointer">
                     <img
-                      src={`http://127.0.0.1:3000${image.path}`}
+                      src={buildImageUrl(image.path)}
                       alt={`Event image ${imgIndex + 1}`}
                       className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
                       onClick={(e) => {
                         e.stopPropagation();
                         
-                        setSelectedImage(`http://127.0.0.1:3000${image.path}`);
+                        setSelectedImage(buildImageUrl(image.path));
                         setImageModalOpen(true);
                         
                       }}
@@ -1532,7 +1533,7 @@ const Komunitas = () => {
                       onClick={(e) => {
                         e.stopPropagation();
                         
-                        setSelectedImage(`http://127.0.0.1:3000${image.path}`);
+                        setSelectedImage(buildImageUrl(image.path));
                         setImageModalOpen(true);
                         
                       }}

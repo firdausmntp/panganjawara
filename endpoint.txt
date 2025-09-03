@@ -1,5 +1,5 @@
 # API ENDPOINTS DOCUMENTATION
-Base URL: http://localhost:3000/pajar
+Base URL: https://api.fsu.my.id/pajar
 
 ## 🔓 PUBLIC ENDPOINTS (No Authentication Required)
 
@@ -211,7 +211,7 @@ fields:
 
 ### Create Post with Images
 ```bash
-curl -X POST http://localhost:3000/pajar/posts \
+curl -X POST https://api.fsu.my.id/pajar/posts \
   -F "title=My New Post" \
   -F "content=This is my post content" \
   -F "author=John Doe" \
@@ -221,24 +221,24 @@ curl -X POST http://localhost:3000/pajar/posts \
 
 ### Get Popular Posts
 ```bash
-curl http://localhost:3000/pajar/stats/popular/posts?limit=5
+curl https://api.fsu.my.id/pajar/stats/popular/posts?limit=5
 ```
 
 ### Like a Post
 ```bash
-curl -X POST http://localhost:3000/pajar/posts/1/like
+curl -X POST https://api.fsu.my.id/pajar/posts/1/like
 ```
 
 ### Admin Login
 ```bash
-curl -X POST http://localhost:3000/pajar/auth/login \
+curl -X POST https://api.fsu.my.id/pajar/auth/login \
   -H "Content-Type: application/json" \
   -d '{"username":"admin","password":"admin123"}'
 ```
 
 ### Delete Article (Admin)
 ```bash
-curl -X DELETE http://localhost:3000/pajar/articles/1 \
+curl -X DELETE https://api.fsu.my.id/pajar/articles/1 \
   -H "Authorization: Bearer <jwt_token>"
 ```
 s

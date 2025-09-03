@@ -57,7 +57,7 @@ export class SecurityLogger {
       const recentLogs = this.logs.slice(-100);
       localStorage.setItem('securityLogs', JSON.stringify(recentLogs));
     } catch (error) {
-      console.error('Failed to persist security logs:', error);
+      
     }
   }
   
@@ -66,7 +66,7 @@ export class SecurityLogger {
       const stored = localStorage.getItem('securityLogs');
       return stored ? JSON.parse(stored) : [];
     } catch (error) {
-      console.error('Failed to retrieve security logs:', error);
+      
       return [];
     }
   }

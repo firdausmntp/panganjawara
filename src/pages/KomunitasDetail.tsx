@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { API_CONFIG, buildApiUrl, buildImageUrl } from '../lib/api';
 
 interface Post {
   id: number;
@@ -111,7 +112,7 @@ const KomunitasDetail = () => {
     try {
       setLoading(true);
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${id}?user_id=${userIdentifier}`);
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${id}?user_id=${userIdentifier}`));
       
       if (response.ok) {
         const postData = await response.json();
@@ -119,11 +120,11 @@ const KomunitasDetail = () => {
         await fetchComments();
         await fetchOtherPosts(); // Fetch other posts after getting the current post
       } else {
-        console.error('Failed to fetch post');
+        
         setPost(null);
       }
     } catch (error) {
-      console.error('Error fetching post:', error);
+      
       setPost(null);
     } finally {
       setLoading(false);
@@ -134,13 +135,13 @@ const KomunitasDetail = () => {
     if (!id) return;
     
     try {
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${id}/comments`);
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${id}/comments`));
       if (response.ok) {
         const commentsData = await response.json();
         setComments(commentsData);
       }
     } catch (error) {
-      console.error('Error fetching comments:', error);
+      
     }
   };
 
@@ -149,13 +150,13 @@ const KomunitasDetail = () => {
     
     try {
       setLoadingOtherPosts(true);
-      console.log('Fetching other posts, excluding ID:', id);
+      
       
       // First try to get posts from the same endpoint used in the main community page
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts?limit=10`);
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}?limit=10`));
       if (response.ok) {
         const postsData = await response.json();
-        console.log('Fetched posts data:', postsData);
+        
         
         // Handle different response structures
         let posts = [];
@@ -167,29 +168,29 @@ const KomunitasDetail = () => {
           posts = postsData.posts;
         }
         
-        console.log('Processed posts:', posts);
+        
         
         if (posts.length > 0) {
           // Filter out current post and get random selection
           const filteredPosts = posts.filter(p => p.id.toString() !== id.toString());
-          console.log('Filtered posts (excluding current):', filteredPosts);
+          
           
           // Show up to 4 other posts, shuffled for variety
           const shuffled = filteredPosts.sort(() => 0.5 - Math.random());
           const selectedPosts = shuffled.slice(0, 4);
           
-          console.log('Selected posts to show:', selectedPosts);
+          
           setOtherPosts(selectedPosts);
         } else {
-          console.log('No posts found in response');
+          
           setOtherPosts([]);
         }
       } else {
-        console.error('Failed to fetch posts, status:', response.status);
+        
         setOtherPosts([]);
       }
     } catch (error) {
-      console.error('Error fetching other posts:', error);
+      
       setOtherPosts([]);
     } finally {
       setLoadingOtherPosts(false);
@@ -202,7 +203,7 @@ const KomunitasDetail = () => {
     try {
       setIsLiking(true);
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${id}/like`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${id}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -224,7 +225,7 @@ const KomunitasDetail = () => {
         });
       }
     } catch (error) {
-      console.error('Error liking post:', error);
+      
       toast({
         title: "Error",
         description: "Gagal memproses like",
@@ -240,7 +241,7 @@ const KomunitasDetail = () => {
     
     try {
       const userIdentifier = getUserIdentifier();
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${id}/share`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${id}/share`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -265,7 +266,7 @@ const KomunitasDetail = () => {
         } : null);
       }
     } catch (error) {
-      console.error('Error sharing post:', error);
+      
       toast({
         title: "Error",
         description: "Gagal membagikan postingan",
@@ -298,7 +299,7 @@ const KomunitasDetail = () => {
         formData.append(`images`, image);
       });
 
-      const response = await fetch(`http://127.0.0.1:3000/pajar/posts/${id}/comments`, {
+      const response = await fetch(buildApiUrl(`${API_CONFIG.ENDPOINTS.POSTS}/${id}/comments`), {
         method: 'POST',
         body: formData
       });
@@ -323,7 +324,7 @@ const KomunitasDetail = () => {
         });
       }
     } catch (error) {
-      console.error('Error adding comment:', error);
+      
       toast({
         title: "Error",
         description: "Gagal menambahkan komentar",
@@ -354,7 +355,7 @@ const KomunitasDetail = () => {
     if (!post.images || post.images.length === 0) return [];
     
     if (typeof post.images[0] === 'object' && post.images[0] !== null && 'path' in post.images[0]) {
-      return (post.images as Array<{path: string}>).map(img => `http://127.0.0.1:3000${img.path}`);
+      return (post.images as Array<{path: string}>).map(img => buildImageUrl(img.path));
     }
     
     return post.images as string[];
@@ -364,7 +365,7 @@ const KomunitasDetail = () => {
     if (!comment.images || comment.images.length === 0) return [];
     
     if (typeof comment.images[0] === 'object' && comment.images[0] !== null && 'path' in comment.images[0]) {
-      return (comment.images as Array<{path: string}>).map(img => `http://127.0.0.1:3000${img.path}`);
+      return (comment.images as Array<{path: string}>).map(img => buildImageUrl(img.path));
     }
     
     return comment.images as string[];
@@ -463,7 +464,7 @@ const KomunitasDetail = () => {
 
   // Debug other posts state
   useEffect(() => {
-    console.log('Other posts state changed:', otherPosts);
+    
   }, [otherPosts]);
 
   // Debug modal state
@@ -1149,7 +1150,7 @@ const KomunitasDetail = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => {
-                          console.log('Retry button clicked');
+                          
                           fetchOtherPosts();
                         }}
                         className="text-xs"
