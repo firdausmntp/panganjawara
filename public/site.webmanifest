@@ -1,0 +1,27 @@
+{
+  "name": "Pangan Jawara",
+  "short_name": "PanganJawara",
+  "description": "Platform digital terdepan untuk mendukung ketahanan pangan Indonesia",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#16a34a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pajar.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/pajar.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["agriculture", "education", "productivity"],
+  "lang": "id",
+  "dir": "ltr"
+}
