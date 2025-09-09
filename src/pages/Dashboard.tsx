@@ -16,13 +16,18 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCommodityPrices } from '@/components/data/useCommodityPrices';
 import WeatherForecast from '@/components/data/WeatherForecast';
-import { useAutoWeatherAdm4 } from '@/components/data/useAutoWeatherAdm4';
 import { useWeatherForecast } from '@/components/data/useWeatherForecast';
 import { getUserIdentifier } from '@/lib/user';
 import { stripMarkdown } from '../lib/text';
 import ChatAssistant from "@/components/dashboard/ChatAssistant";
 import InteractiveMap from "@/components/dashboard/InteractiveMap";
+import WeatherLoading from "@/components/dashboard/WeatherLoading";
+import LoadingDots from "@/components/ui/loading-dots";
+import { useIPLocation } from '@/hooks/useIPLocation';
+import { useLocationToAdm4 } from '@/hooks/useLocationToAdm4';
+import { useWilayahDetails } from '@/components/data/useWilayahDetails';
 import { API_CONFIG, buildApiUrl, buildImageUrl } from '../lib/api';
+import { generateDashboardSummary, type DashboardSummaryData } from '../lib/gemini';
 
 interface ArticleLite { id:number; title:string; created_at?:string; excerpt?:string; like_count?:number; view_count?:number; images?: { path:string }[]; content?: string; }
 interface PostLite { id:number; title?:string; content:string; author:string; like_count?:number; created_at?:string; }
@@ -38,44 +43,168 @@ const Dashboard = () => {
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Auto lokasi untuk cuaca
-  const auto = useAutoWeatherAdm4();
-  const adm4 = auto.adm4 || '36.03.12.2001';
+  // IP Location untuk cuaca
+  const ipLocation = useIPLocation();
+  const locationToAdm4 = useLocationToAdm4(
+    ipLocation.city,
+    ipLocation.district, 
+    ipLocation.state,
+    ipLocation.data?.properties?.country?.code || 'ID',
+    !ipLocation.loading && !ipLocation.error && !!ipLocation.city
+  );
+  
+  // State untuk ADM4 yang dipilih user (dari pencarian cuaca)
+  const [selectedAdm4, setSelectedAdm4] = useState<string>('');
+  
+  // Gunakan ADM4 yang dipilih user, atau dari IP location, atau fallback
+  const adm4 = selectedAdm4 || locationToAdm4.adm4Code || '36.03.12.2001';
   const weatherQuery = useWeatherForecast(adm4);
+  const wilayahDetails = useWilayahDetails(adm4);
+  
+  // Status loading gabungan
+  const locationLoading = ipLocation.loading || locationToAdm4.loading;
 
   // AI summary state (derived)
   const [summary, setSummary] = useState<string>('');
 
+  // Handler untuk perubahan lokasi cuaca
+  const handleLocationChange = (newAdm4: string) => {
+    setSelectedAdm4(newAdm4);
+    // Log untuk debugging (bisa dihapus di production)
+    console.log('Dashboard: Lokasi cuaca diperbarui ke', newAdm4);
+  };
+
   useEffect(() => {
     // Bangun ringkasan setelah data tersedia
-    if (loadingHarga || weatherQuery.isLoading) return;
-    let parts: string[] = [];
-    // Harga
-    if (harga.length) {
-      const sorted = [...harga].sort((a,b)=> Math.abs(b.gap_percentage) - Math.abs(a.gap_percentage));
-      const top = sorted.slice(0,3);
-      const movers = top.map(c => `${c.name} ${c.gap>0?'+':''}${c.gap_percentage.toFixed(1)}%`).join(', ');
-      const naik = top.filter(c=>c.gap>0).length; const turun = top.filter(c=>c.gap<0).length;
-      parts.push(`Pergerakan harga dominan: ${movers}. (${naik} naik / ${turun} turun)`);
-    } else {
-      parts.push('Data harga belum tersedia.');
-    }
-    // Cuaca
-    const days = weatherQuery.data?.days || [];
-    if (days.length) {
-      const today = days[0];
-      const temps = today.items.map(i=>i.t);
-      const maxT = Math.max(...temps); const minT = Math.min(...temps);
-      // pilih slot sekitar jam 12 atau fallback index tengah
-      const midday = today.items.find(i=> i.local_datetime.slice(11,13)==='12') || today.items[Math.floor(today.items.length/2)];
-      if (midday) {
-        parts.push(`Cuaca siang: ${midday.weather_desc?.toLowerCase()} suhu ${midday.t}°C (rentang harian ${minT}–${maxT}°C).`);
+    if (loadingHarga || weatherQuery.isLoading || locationLoading) return;
+    
+    // Tambah sedikit delay untuk efek "AI thinking"
+    const timer = setTimeout(async () => {
+      try {
+        // Prepare data untuk Gemini AI
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('id-ID', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          timeZone: 'Asia/Jakarta'
+        });
+        const dateStr = now.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          day: 'numeric', 
+          month: 'long',
+          year: 'numeric'
+        });
+
+        // Prepare location data
+        const locationInfo = {
+          isSelected: !!selectedAdm4,
+          kelurahan: wilayahDetails.data?.kelurahan || locationToAdm4.locationDetail?.weatherLocation || ipLocation.city,
+          kabupatenKota: wilayahDetails.data?.kabupatenKota || locationToAdm4.locationDetail?.kabupatenKota || ipLocation.district,
+          provinsi: wilayahDetails.data?.provinsi || locationToAdm4.locationDetail?.provinsi || ipLocation.state,
+          isIndonesia: locationToAdm4.isIndonesia
+        };
+
+        // Prepare weather data
+        const days = weatherQuery.data?.days || [];
+        let weatherData: DashboardSummaryData['weatherData'] = {};
+        
+        if (days.length > 0) {
+          const today = days[0];
+          const tomorrow = days[1];
+          const temps = today.items.map(i => i.t);
+          const maxT = Math.max(...temps);
+          const minT = Math.min(...temps);
+          
+          // Current weather
+          const currentHour = now.getHours();
+          const currentSlot = today.items.find(i => {
+            const itemHour = parseInt(i.local_datetime.slice(11,13));
+            return Math.abs(itemHour - currentHour) <= 1;
+          }) || today.items.find(i => i.local_datetime.slice(11,13) === '12') || today.items[Math.floor(today.items.length/2)];
+          
+          if (currentSlot) {
+            weatherData = {
+              currentWeather: currentSlot.weather_desc?.toLowerCase(),
+              currentTemp: currentSlot.t,
+              minTemp: minT,
+              maxTemp: maxT
+            };
+          }
+          
+          // Tomorrow weather
+          if (tomorrow && tomorrow.items.length > 0) {
+            const tomorrowTemps = tomorrow.items.map(i => i.t);
+            const tomorrowMax = Math.max(...tomorrowTemps);
+            const tomorrowMin = Math.min(...tomorrowTemps);
+            const tomorrowMidday = tomorrow.items.find(i => i.local_datetime.slice(11,13) === '12') || tomorrow.items[Math.floor(tomorrow.items.length/2)];
+            
+            if (tomorrowMidday) {
+              weatherData.tomorrowWeather = tomorrowMidday.weather_desc?.toLowerCase();
+              weatherData.tomorrowMinTemp = tomorrowMin;
+              weatherData.tomorrowMaxTemp = tomorrowMax;
+            }
+          }
+        }
+
+        // Prepare commodity data
+        let commodityData: DashboardSummaryData['commodityData'] = {
+          totalCount: harga.length,
+          upCount: 0,
+          downCount: 0,
+          stableCount: 0
+        };
+
+        if (harga.length > 0) {
+          const naik = harga.filter(c => c.gap > 0).length;
+          const turun = harga.filter(c => c.gap < 0).length;
+          const stabil = harga.length - naik - turun;
+          
+          commodityData.upCount = naik;
+          commodityData.downCount = turun;
+          commodityData.stableCount = stabil;
+          
+          const sorted = [...harga].sort((a,b) => Math.abs(b.gap_percentage) - Math.abs(a.gap_percentage));
+          const top = sorted.slice(0, 5);
+          
+          if (top.length > 0) {
+            const topMover = top[0];
+            commodityData.topMover = {
+              name: topMover.name,
+              percentage: topMover.gap_percentage,
+              price: topMover.today
+            };
+            
+            if (top.length >= 3) {
+              commodityData.significantMovers = top.slice(1, 3).map(c => 
+                `${c.name} ${c.gap > 0 ? '+' : ''}${c.gap_percentage.toFixed(1)}%`
+              );
+            }
+          }
+        }
+
+        const summaryData: DashboardSummaryData = {
+          locationInfo,
+          weatherData,
+          commodityData,
+          timestamp: {
+            time: timeStr,
+            date: dateStr
+          }
+        };
+
+        // Generate AI summary
+        const aiSummary = await generateDashboardSummary(summaryData);
+        setSummary(aiSummary);
+        
+      } catch (error) {
+        console.error('Error generating AI summary:', error);
+        // Fallback ke ringkasan sederhana jika error
+        setSummary(`⚠️ Terjadi masalah saat menganalisis data. Memuat ${harga.length} komoditas dan prakiraan cuaca untuk ${wilayahDetails.data?.kelurahan || 'lokasi terpilih'}. ⏰ ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`);
       }
-    } else if (weatherQuery.error) {
-      parts.push('Data cuaca belum tersedia.');
-    }
-    setSummary(parts.join(' '));
-  }, [harga, loadingHarga, weatherQuery.data, weatherQuery.isLoading, weatherQuery.error]);
+    }, 1200); // delay lebih lama untuk AI processing
+
+    return () => clearTimeout(timer);
+  }, [harga, loadingHarga, weatherQuery.data, weatherQuery.isLoading, weatherQuery.error, locationLoading, ipLocation.city, ipLocation.state, locationToAdm4.isIndonesia, wilayahDetails.data, selectedAdm4]);
 
   // Fetch helpers
   useEffect(()=> {
@@ -152,11 +281,65 @@ const Dashboard = () => {
               </div>
             </div>
             <div className="flex-1 min-w-[300px] bg-white/10 rounded-xl p-4 backdrop-blur">
-              <div className="flex items-center gap-2 mb-3 text-sm font-semibold"><CloudRain className="w-4 h-4"/> Cuaca (3 Hari)</div>
-              <div className="h-64 overflow-auto pr-1 custom-scrollbar">
-                <WeatherForecast defaultAdm4={adm4} variant="onDark" />
-              </div>
-              <div className="mt-2 text-[10px] text-emerald-100">Lokasi otomatis: {auto.loading? 'mendeteksi...' : (auto.city || 'default')} • kode: {adm4}</div>
+              {locationLoading ? (
+                <WeatherLoading variant="onDark" />
+              ) : (
+                <>
+                  <div className="flex items-center justify-between mb-3 text-sm font-semibold">
+                    <div className="flex items-center gap-2">
+                      <CloudRain className="w-4 h-4"/> 
+                      Cuaca (3 Hari)
+                    </div>
+                    {selectedAdm4 && (
+                      <button
+                        onClick={() => setSelectedAdm4('')}
+                        className="text-[10px] text-emerald-200 hover:text-white transition-colors underline"
+                      >
+                        Reset ke IP
+                      </button>
+                    )}
+                  </div>
+                  <div className="h-64 overflow-auto pr-1 custom-scrollbar">
+                    <WeatherForecast 
+                      defaultAdm4={adm4} 
+                      variant="onDark" 
+                      onLocationChange={handleLocationChange}
+                    />
+                  </div>
+                  <div className="mt-2 text-[10px] text-emerald-100 space-y-1">
+                    {ipLocation.error ? (
+                      <div>Default lokasi cuaca: Jakarta Pusat</div>
+                    ) : selectedAdm4 ? (
+                      // Lokasi dipilih manual dari pencarian
+                      <>
+                        <div className="font-medium">
+                          🎯 {wilayahDetails.data?.kelurahan || 'Lokasi dipilih'}
+                        </div>
+                        <div className="text-emerald-200">
+                          {wilayahDetails.data?.fullHierarchy || 'Memuat detail lokasi...'}
+                        </div>
+                      </>
+                    ) : locationToAdm4.isIndonesia ? (
+                      // Lokasi otomatis dari IP
+                      <>
+                        <div className="font-medium">
+                          📍 {wilayahDetails.data?.kelurahan || locationToAdm4.locationDetail?.weatherLocation || 'Lokasi terdeteksi'}
+                        </div>
+                        <div className="text-emerald-200">
+                          {wilayahDetails.data?.fullHierarchy || locationToAdm4.locationDetail?.fullHierarchy || `IP: ${ipLocation.city}, ${ipLocation.district}`}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="font-medium">🌍 Lokasi luar Indonesia</div>
+                        <div className="text-emerald-200">
+                          IP: {ipLocation.city}, {ipLocation.state} → Default: Jakarta Pusat
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </>
+              )}
             </div>
           </div>
           {/* AI Summary */}
@@ -164,7 +347,22 @@ const Dashboard = () => {
             <Sparkles className="w-5 h-5 text-yellow-300 shrink-0 mt-0.5" />
             <div className="text-sm leading-relaxed">
               <p className="font-semibold text-white mb-1">Ringkasan Hari Ini</p>
-              <p className="text-emerald-50 text-xs whitespace-pre-line min-h-[32px]">{summary || 'Menganalisis data...'}</p>
+              <div className="text-emerald-50 text-xs whitespace-pre-line min-h-[48px]">
+                {summary || (
+                  <span className="flex items-start gap-2">
+                    <div className="flex-1">
+                      {locationLoading 
+                        ? '🌍 Mencari kelurahan/desa terdekat berdasarkan lokasi IP untuk data cuaca yang akurat...' 
+                        : loadingHarga 
+                        ? '💰 Menganalisis pergerakan harga komoditas dari berbagai daerah...'
+                        : weatherQuery.isLoading
+                        ? '🌤️ Memuat prakiraan cuaca dari wilayah yang terdeteksi...'
+                        : '🤖 AI sedang menganalisis kondisi terkini dan menyusun ringkasan yang informatif...'}
+                    </div>
+                    <LoadingDots />
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -251,7 +449,11 @@ const Dashboard = () => {
 
       {/* Chat Assistant */}
       <div className="max-w-7xl mx-auto px-4 mt-16">
-        <ChatAssistant />
+        <ChatAssistant 
+          locationName={wilayahDetails.data?.kelurahan || locationToAdm4.locationDetail?.weatherLocation}
+          weatherCondition={weatherQuery.data?.days?.[0]?.items?.[0]?.weather_desc}
+          topCommodity={harga.length > 0 ? harga.sort((a,b) => Math.abs(b.gap_percentage) - Math.abs(a.gap_percentage))[0]?.name : undefined}
+        />
       </div>
     </div>
   );

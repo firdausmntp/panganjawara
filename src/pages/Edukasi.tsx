@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Users, Award, PlayCircle, Clock, TrendingUp, Sprout, Tractor, Bug, Droplets, Cloud, DollarSign, Headphones, Star, Eye, Calendar, ArrowRight, Loader2, Search, Filter, Heart, Share2, Bookmark } from "lucide-react";
+import { BookOpen, Users, Award, PlayCircle, Clock, TrendingUp, Video, Play, Star, Eye, Calendar, ArrowRight, Loader2, Search, Filter, Heart, Share2, Bookmark } from "lucide-react";
 import { stripMarkdown } from '../lib/text';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -260,104 +260,83 @@ const Edukasi = () => {
     }
   };
 
-const coursesForFarmers = [
+// Placeholder data untuk video edukasi
+const videoEducation = [
     {
       id: 1,
       title: "Teknik Budidaya Padi Modern",
       category: "Tanaman Pangan",
-      level: "Pemula",
-      duration: "4 minggu",
-      students: 1250,
-      progress: 65,
-      icon: Sprout,
-      modules: 8,
-      description: "Pelajari cara menanam padi dengan teknologi modern untuk hasil maksimal"
+      duration: "15:30",
+      views: 1250,
+      likes: 89,
+      thumbnail: "/placeholder.svg",
+      description: "Video tutorial lengkap cara menanam padi dengan teknologi modern untuk hasil maksimal",
+      author: "Dr. Agus Pertanian",
+      uploaded: "2024-01-15"
     },
     {
       id: 2,
       title: "Pengendalian Hama Terpadu",
       category: "Perlindungan Tanaman",
-      level: "Menengah",
-      duration: "3 minggu",
-      students: 890,
-      progress: 40,
-      icon: Bug,
-      modules: 6,
-      description: "Cara efektif mengendalikan hama tanpa merusak lingkungan"
+      duration: "22:15",
+      views: 890,
+      likes: 67,
+      thumbnail: "/placeholder.svg",
+      description: "Cara efektif mengendalikan hama tanaman secara terpadu dan ramah lingkungan",
+      author: "Prof. Sari Tani",
+      uploaded: "2024-01-10"
     },
     {
       id: 3,
-      title: "Irigasi Hemat Air",
+      title: "Sistem Irigasi Hemat Air",
       category: "Teknologi Pertanian",
-      level: "Pemula",
-      duration: "2 minggu",
-      students: 2100,
-      progress: 80,
-      icon: Droplets,
-      modules: 4,
-      description: "Sistem irigasi modern untuk menghemat air dan biaya"
+      duration: "18:45",
+      views: 2100,
+      likes: 156,
+      thumbnail: "/placeholder.svg",
+      description: "Implementasi sistem irigasi tetes dan sprinkler untuk menghemat air",
+      author: "Ir. Budi Santoso",
+      uploaded: "2024-01-08"
     },
     {
       id: 4,
-      title: "Membaca Prakiraan Cuaca untuk Petani",
+      title: "Membaca Prakiraan Cuaca",
       category: "Manajemen Risiko",
-      level: "Pemula",
-      duration: "1 minggu",
-      students: 3200,
-      progress: 100,
-      icon: Cloud,
-      modules: 3,
-      description: "Pahami cuaca untuk menentukan waktu tanam yang tepat"
+      duration: "12:20",
+      views: 3200,
+      likes: 234,
+      thumbnail: "/placeholder.svg",
+      description: "Panduan praktis membaca dan menganalisis prakiraan cuaca untuk petani",
+      author: "Dr. Ika Meteorologi",
+      uploaded: "2024-01-05"
     },
     {
       id: 5,
-      title: "Pemasaran Hasil Panen Online",
+      title: "Pemasaran Online Hasil Panen",
       category: "Bisnis Pertanian",
-      level: "Pemula",
-      duration: "2 minggu",
-      students: 1560,
-      progress: 20,
-      icon: DollarSign,
-      modules: 5,
-      description: "Jual hasil panen langsung ke konsumen melalui platform digital"
+      duration: "25:10",
+      views: 1560,
+      likes: 112,
+      thumbnail: "/placeholder.svg",
+      description: "Strategi dan platform digital untuk memasarkan hasil pertanian",
+      author: "Drs. Andi Market",
+      uploaded: "2024-01-02"
     },
     {
       id: 6,
-      title: "Pengoperasian Traktor & Alat Mesin",
-      category: "Mekanisasi",
-      level: "Menengah",
-      duration: "3 minggu",
-      students: 780,
-      progress: 0,
-      icon: Tractor,
-      modules: 7,
-      description: "Cara menggunakan dan merawat alat mesin pertanian"
+      title: "Pemupukan Organik vs Kimia",
+      category: "Nutrisi Tanaman",
+      duration: "20:35",
+      views: 1890,
+      likes: 145,
+      thumbnail: "/placeholder.svg",
+      description: "Perbandingan efektivitas dan dampak pupuk organik vs pupuk kimia",
+      author: "Prof. Lestari Organik",
+      uploaded: "2023-12-28"
     }
   ];
 
-  const learningPaths = [
-    {
-      name: "Petani Pemula",
-      description: "Mulai dari dasar-dasar pertanian",
-      courses: 12,
-      duration: "3 bulan",
-      color: "bg-gradient-primary"
-    },
-    {
-      name: "Petani Modern",
-      description: "Teknologi dan inovasi pertanian",
-      courses: 8,
-      duration: "2 bulan",
-      color: "bg-gradient-sunrise"
-    },
-    {
-      name: "Agribisnis",
-      description: "Kembangkan bisnis pertanian Anda",
-      courses: 10,
-      duration: "2.5 bulan",
-      color: "bg-gradient-earth"
-    }
-  ];
+
 
   return (
     <div className="min-h-screen bg-background pt-20">
@@ -380,9 +359,9 @@ const coursesForFarmers = [
             <p className="text-xs md:text-sm text-muted-foreground">Artikel Tersedia</p>
           </Card>
           <Card className="p-4 md:p-6 text-center hover:shadow-lg transition-shadow">
-            <Users className="w-6 h-6 md:w-8 md:h-8 text-secondary mx-auto mb-2" />
-            <h3 className="text-xl md:text-2xl font-bold text-foreground">{featuredArticles.length}</h3>
-            <p className="text-xs md:text-sm text-muted-foreground">Artikel Unggulan</p>
+            <Video className="w-6 h-6 md:w-8 md:h-8 text-secondary mx-auto mb-2" />
+            <h3 className="text-xl md:text-2xl font-bold text-foreground">{videoEducation.length}</h3>
+            <p className="text-xs md:text-sm text-muted-foreground">Video Edukasi</p>
           </Card>
           <Card className="p-4 md:p-6 text-center hover:shadow-lg transition-shadow">
             <Star className="w-6 h-6 md:w-8 md:h-8 text-accent mx-auto mb-2" />
@@ -427,7 +406,7 @@ const coursesForFarmers = [
         <Tabs defaultValue="articles" className="w-full">
           <TabsList className="w-full md:w-auto mb-6">
             <TabsTrigger value="articles">Artikel Terbaru</TabsTrigger>
-            <TabsTrigger value="courses">Kursus Online</TabsTrigger>
+            <TabsTrigger value="videos">Video Edukasi</TabsTrigger>
             <TabsTrigger value="featured">Artikel Unggulan</TabsTrigger>
           </TabsList>
 
@@ -550,55 +529,63 @@ const coursesForFarmers = [
             )}
           </TabsContent>
 
-          <TabsContent value="courses">
+          <TabsContent value="videos">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {coursesForFarmers.map((course) => {
-                const Icon = course.icon;
-                return (
-                  <Card key={course.id} className="p-6 hover:shadow-elegant transition-all duration-300">
-                    <div className="flex justify-between items-start mb-4">
-                      <Icon className="w-10 h-10 text-primary" />
-                      <Badge variant={course.level === "Pemula" ? "secondary" : "outline"}>
-                        {course.level}
-                      </Badge>
+              {videoEducation.map((video) => (
+                <Card key={video.id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden cursor-pointer">
+                  <div className="relative">
+                    <img 
+                      src={video.thumbnail} 
+                      alt={video.title}
+                      className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-all duration-300" />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center group-hover:bg-white transition-all duration-300">
+                        <Play className="w-6 h-6 text-primary ml-1" />
+                      </div>
+                    </div>
+                    <Badge className="absolute top-3 left-3 bg-red-600">
+                      <Video className="w-3 h-3 mr-1" />
+                      {video.duration}
+                    </Badge>
+                  </div>
+                  
+                  <CardContent className="p-4">
+                    <Badge variant="outline" className="text-xs mb-2">
+                      {video.category}
+                    </Badge>
+                    <h3 className="font-semibold text-lg mb-2 group-hover:text-primary transition-colors line-clamp-2">
+                      {video.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {video.description}
+                    </p>
+                    
+                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
+                      <span>By {video.author}</span>
+                      <span>{new Date(video.uploaded).toLocaleDateString('id-ID')}</span>
                     </div>
                     
-                    <h3 className="text-lg font-bold text-foreground mb-2">{course.title}</h3>
-                    <p className="text-sm text-muted-foreground mb-4">{course.description}</p>
-                    
-                    <div className="space-y-3">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-medium text-foreground">{course.progress}%</span>
-                      </div>
-                      <Progress value={course.progress} className="h-2" />
-                      
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {course.duration}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <BookOpen className="w-4 h-4" />
-                            {course.modules} modul
-                          </span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                        <div className="flex items-center space-x-1">
+                          <Eye className="w-4 h-4" />
+                          <span>{video.views.toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Heart className="w-4 h-4" />
+                          <span>{video.likes}</span>
                         </div>
                       </div>
                       
-                      <div className="flex items-center justify-between pt-2">
-                        <span className="text-sm text-muted-foreground">
-                          <Users className="w-4 h-4 inline mr-1" />
-                          {course.students.toLocaleString()} peserta
-                        </span>
-                        <Button size="sm" variant={course.progress > 0 ? "secondary" : "default"}>
-                          {course.progress === 0 ? "Mulai" : course.progress === 100 ? "Selesai" : "Lanjutkan"}
-                        </Button>
-                      </div>
+                      <Button size="sm" className="group-hover:bg-primary group-hover:text-primary-foreground">
+                        Tonton <PlayCircle className="w-3 h-3 ml-1" />
+                      </Button>
                     </div>
-                  </Card>
-                );
-              })}
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </TabsContent>
 

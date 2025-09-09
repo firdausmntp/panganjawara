@@ -9,7 +9,7 @@ interface NavigationProps {
 const Navigation = ({ mobile = false, onItemClick }: NavigationProps) => {
   const navItems = [
     { path: "/", label: "Beranda" },
-    { path: "/edukasi", label: "Edukasi Petani" },
+    { path: "/edukasi", label: "Edukasi" },
     { path: "/data", label: "Data & Analytics" },
     { path: "/komunitas", label: "Komunitas Jawara" }
   ];

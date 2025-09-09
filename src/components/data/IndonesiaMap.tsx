@@ -41,6 +41,7 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState<{ code: string; x: number; y: number } | null>(null);
+  const [touchTooltip, setTouchTooltip] = useState<{ code: string; x: number; y: number } | null>(null);
 
   // Type assertion for the imported data
   const mapData = simplemaps_countrymap as SimpleMapData;
@@ -104,6 +105,7 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
       setIsTouching(true);
       setIsDragging(true);
       setHovered(null); // Clear hover on touch
+      setTouchTooltip(null); // Clear touch tooltip when dragging
       setDragStart({
         x: touch.clientX - position.x,
         y: touch.clientY - position.y,
@@ -130,6 +132,24 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
   const handleProvinceClick = (provinceCode: string) => {
     if (onSelect) {
       onSelect(provinceCode);
+    }
+  };
+
+  const handleProvinceTouchStart = (e: React.TouchEvent, provinceCode: string) => {
+    if (e.touches.length === 1 && !isDragging) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setTouchTooltip({ 
+          code: provinceCode, 
+          x: touch.clientX - rect.left, 
+          y: touch.clientY - rect.top 
+        });
+        
+        // Auto hide tooltip after 3 seconds
+        setTimeout(() => setTouchTooltip(null), 3000);
+      }
     }
   };
 
@@ -306,6 +326,7 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
                   stroke="#ffffff"
                   strokeWidth="0.5"
                   onClick={() => handleProvinceClick(provinceCode)}
+                  onTouchStart={(e) => handleProvinceTouchStart(e, provinceCode)}
                   onMouseEnter={(e) => {
                     // Start hover and position tooltip
                     if (containerRef.current) {
@@ -342,7 +363,7 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
         </svg>
       </div>
 
-      {/* Hover tooltip with prices - hide on mobile touch */}
+      {/* Desktop hover tooltip */}
       {hovered && !isDragging && !isTouching && (
         <div
           className="absolute z-30 pointer-events-none hidden sm:block"
@@ -363,6 +384,37 @@ const IndonesiaMap: React.FC<IndonesiaMapProps> = ({ selected, onSelect, classNa
                 {!hoverPrices?.length && <div className="text-gray-500">Tidak ada data harga</div>}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Mobile touch tooltip */}
+      {touchTooltip && (
+        <div
+          className="absolute z-30 pointer-events-none block sm:hidden"
+          style={{ 
+            left: Math.min(Math.max(touchTooltip.x - 110, 8), (containerRef.current?.clientWidth || 0) - 220), 
+            top: Math.min(Math.max(touchTooltip.y - 80, 8), (containerRef.current?.clientHeight || 0) - 160) 
+          }}
+        >
+          <div className="w-[200px] rounded-lg shadow-xl border bg-white/95 backdrop-blur-md p-3 text-xs">
+            <div className="flex items-center justify-between mb-2">
+              <div className="font-semibold text-gray-800">{mapData.state_specific?.[touchTooltip.code]?.name || touchTooltip.code}</div>
+              <button 
+                onClick={() => setTouchTooltip(null)}
+                className="text-gray-400 hover:text-gray-600 ml-2"
+                aria-label="Tutup tooltip"
+              >
+                ×
+              </button>
+            </div>
+            <div className="text-[10px] text-gray-500 mb-2">Ketuk provinsi untuk melihat detail harga</div>
+            <button
+              onClick={() => handleProvinceClick(touchTooltip.code)}
+              className="w-full text-[10px] bg-emerald-600 hover:bg-emerald-700 text-white rounded px-2 py-1 transition-colors"
+            >
+              Lihat Detail Harga
+            </button>
           </div>
         </div>
       )}

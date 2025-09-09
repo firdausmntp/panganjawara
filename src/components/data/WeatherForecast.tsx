@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useWeatherForecast } from './useWeatherForecast';
 import { useWilayahSearch } from './useWilayahSearch';
 import { useProvinsi, useKabKota, useKecamatan, useKelurahan } from './useWilayah';
+import { useWilayahDetails } from './useWilayahDetails';
 import { RefreshCw, MapPin, ChevronsDownUp } from 'lucide-react';
 
 interface WeatherForecastProps {
@@ -10,9 +11,11 @@ interface WeatherForecastProps {
   variant?: 'default' | 'onDark';
   /** Additional className for outer container */
   className?: string;
+  /** Callback when location changes via search or dropdown selection */
+  onLocationChange?: (adm4Code: string) => void;
 }
 
-const WeatherForecast: React.FC<WeatherForecastProps> = ({ defaultAdm4 = '36.03.12.2001', variant='default', className='' }) => {
+const WeatherForecast: React.FC<WeatherForecastProps> = ({ defaultAdm4 = '36.03.12.2001', variant='default', className='', onLocationChange }) => {
   // Parse default codes
   const parts = defaultAdm4.split('.');
   const defaultProv = parts[0];
@@ -31,6 +34,7 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ defaultAdm4 = '36.03.
   const [showResults, setShowResults] = useState(false);
   const { data, isLoading, error, refetch, isFetching } = useWeatherForecast(adm4);
   const { data: searchData, isLoading: searching } = useWilayahSearch(query);
+  const wilayahDetails = useWilayahDetails(adm4);
   const provQuery = useProvinsi();
   const kabQuery = useKabKota(prov);
   const kecQuery = useKecamatan(prov, kab);
@@ -62,6 +66,10 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ defaultAdm4 = '36.03.
   };
   const handleKelChange = (code: string) => {
     setKel(code || '');
+    // Notify parent component about location change
+    if (code && onLocationChange) {
+      onLocationChange(code);
+    }
   };
 
   const onDark = variant === 'onDark';
@@ -135,7 +143,7 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ defaultAdm4 = '36.03.
             {showResults && query.trim().length >= 3 && (
               <div className="absolute z-30 mt-1 w-full max-h-56 overflow-auto bg-white border rounded-md shadow-lg text-sm">
                 {searching && <div className="p-2 text-slate-500">Mencari...</div>}
-                {!searching && (searchData?.items ?? []).filter(i => i.kode.split('.').length === 4).slice(0,20).map(item => (
+                {!searching && (searchData?.items ?? []).map(item => (
                   <button
                     key={item.kode}
                     onClick={() => { 
@@ -146,14 +154,18 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ defaultAdm4 = '36.03.
                       handleKecChange(parts.slice(0,3).join('.'));
                       handleKelChange(item.kode);
                       setQuery(''); setShowResults(false); 
+                      // Notify parent immediately for search selection
+                      if (onLocationChange) {
+                        onLocationChange(item.kode);
+                      }
                     }}
                     className="w-full text-left px-3 py-2 hover:bg-green-50 flex flex-col"
                   >
                     <span className="font-medium text-slate-700 text-[13px]">{item.nama}</span>
-                    <span className="text-[11px] text-slate-500">{item.kode}</span>
+                    <span className="text-[11px] text-slate-500">{item.hierarchy || 'Memuat detail lokasi...'}</span>
                   </button>
                 ))}
-                {!searching && !(searchData?.items ?? []).filter(i => i.kode.split('.').length === 4).length && (
+                {!searching && !(searchData?.items ?? []).length && (
                   <div className="p-2 text-slate-500">Tidak ada hasil</div>
                 )}
               </div>
@@ -161,7 +173,9 @@ const WeatherForecast: React.FC<WeatherForecastProps> = ({ defaultAdm4 = '36.03.
           </div>
         </div>
       )}
-  <div className="text-[12px] text-slate-600 -mt-2">Lokasi: {lokasi ? `${lokasi.desa}, ${lokasi.kecamatan}, ${lokasi.kotkab}, ${lokasi.provinsi}` : (kel ? 'Memuat lokasi...' : 'Pilih wilayah sampai desa/kelurahan')}</div>
+  <div className="text-[12px] text-slate-600 -mt-2">
+    Lokasi: {wilayahDetails.data?.fullHierarchy || (lokasi ? `${lokasi.desa}, ${lokasi.kecamatan}, ${lokasi.kotkab}, ${lokasi.provinsi}` : (kel ? 'Memuat lokasi...' : 'Pilih wilayah sampai desa/kelurahan'))}
+  </div>
   {!kel && <div className="text-[12px] text-slate-500">Silakan pilih hingga Desa/Kelurahan untuk melihat prakiraan.</div>}
   {kel && isLoading && <div className="text-[12px] text-slate-500">Memuat prakiraan...</div>}
   {kel && error && <div className="text-[12px] text-red-600">{error.message}</div>}

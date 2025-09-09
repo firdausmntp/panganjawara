@@ -1,11 +1,19 @@
 import { useState } from "react";
-import { MessageCircle, Send, X, Bot } from "lucide-react";
+import { MessageCircle, Send, X, Bot, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { generateAIAssistantResponse, getDashboardContext } from "@/lib/aiAssistant";
 
-const ChatAssistant = () => {
+interface ChatAssistantProps {
+  locationName?: string;
+  weatherCondition?: string;
+  topCommodity?: string;
+}
+
+const ChatAssistant = ({ locationName, weatherCondition, topCommodity }: ChatAssistantProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState<Array<{
     text: string;
     isBot: boolean;
@@ -18,25 +26,50 @@ const ChatAssistant = () => {
     }
   ]);
 
-  const handleSend = () => {
-    if (!message.trim()) return;
+  const handleSend = async () => {
+    if (!message.trim() || isLoading) return;
     
-    setMessages([...messages, {
-      text: message,
+    const userMessage = message.trim();
+    setMessage("");
+    setIsLoading(true);
+    
+    // Add user message
+    setMessages(prev => [...prev, {
+      text: userMessage,
       isBot: false,
       timestamp: new Date()
     }]);
     
-    // Simulate bot response
-    setTimeout(() => {
+    try {
+      // Build context dari dashboard
+      const context = getDashboardContext(locationName, weatherCondition, topCommodity);
+      
+      // Generate AI response dengan fallback system
+      const aiResponse = await generateAIAssistantResponse(userMessage, context, {
+        maxRetries: 2,
+        timeout: 15000,
+        fallbackResponse: "Maaf, saya sedang mengalami gangguan sistem. Untuk bantuan lebih lanjut, silakan coba lagi dalam beberapa saat atau kunjungi halaman Komunitas untuk bertanya kepada sesama pengguna."
+      });
+      
+      // Add AI response
       setMessages(prev => [...prev, {
-        text: "Terima kasih atas pertanyaan Anda. Saya sedang memproses informasi yang Anda butuhkan.",
+        text: aiResponse,
         isBot: true,
         timestamp: new Date()
       }]);
-    }, 1000);
-    
-    setMessage("");
+      
+    } catch (error) {
+      console.error('Chat Assistant Error:', error);
+      
+      // Emergency fallback response
+      setMessages(prev => [...prev, {
+        text: "⚠️ Maaf, terjadi kesalahan sistem. Silakan coba pertanyaan lain atau kunjungi halaman Edukasi dan Komunitas untuk mendapatkan informasi yang Anda butuhkan.",
+        isBot: true,
+        timestamp: new Date()
+      }]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -109,6 +142,18 @@ const ChatAssistant = () => {
               </div>
             </div>
           ))}
+          
+          {/* Loading indicator */}
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-muted text-foreground p-3 rounded-lg max-w-[80%]">
+                <div className="flex items-center space-x-2">
+                  <Loader2 size={16} className="animate-spin" />
+                  <p className="text-sm">AI sedang berpikir...</p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Input */}
@@ -125,9 +170,14 @@ const ChatAssistant = () => {
             <Button
               onClick={handleSend}
               size="icon"
-              className="bg-gradient-primary hover:opacity-90"
+              disabled={isLoading}
+              className="bg-gradient-primary hover:opacity-90 disabled:opacity-50"
             >
-              <Send size={18} />
+              {isLoading ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Send size={18} />
+              )}
             </Button>
           </div>
         </div>
