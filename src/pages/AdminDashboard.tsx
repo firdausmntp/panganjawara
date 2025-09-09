@@ -18,6 +18,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { 
   LogOut, 
   Users, 
@@ -36,7 +46,12 @@ import {
   Loader2,
   Search,
   X,
-  Sparkles
+  Sparkles,
+  Video,
+  PlayCircle,
+  Heart,
+  Share2,
+  ExternalLink
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import SecurityLogs from '@/components/admin/SecurityLogs';
@@ -143,6 +158,23 @@ interface Comment {
   replies?: Comment[];
 }
 
+interface Video {
+  id: number;
+  title: string;
+  description: string;
+  author: string;
+  youtube_url: string;
+  thumbnail_url?: string;
+  duration?: string;
+  view_count: number;
+  like_count?: number;
+  status: 'published' | 'draft' | 'archived';
+  featured?: boolean;
+  tags?: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -184,6 +216,7 @@ const AdminDashboard = () => {
             loadData('events'),
             loadData('posts'),
             loadData('comments'),
+            loadData('videos'),
             AuthService.canAccess('users') ? loadData('users') : Promise.resolve()
           ]);
           break;
@@ -198,6 +231,9 @@ const AdminDashboard = () => {
           break;
         case 'comments':
           await loadData('comments');
+          break;
+        case 'videos':
+          await loadData('videos');
           break;
         case 'users':
           if (AuthService.canAccess('users')) {
@@ -228,6 +264,7 @@ const AdminDashboard = () => {
     events: [] as Event[],
     users: [] as User[],
     comments: [] as Comment[],
+    videos: [] as Video[],
     stats: null,
     dashboardStats: null as any
   });
@@ -238,7 +275,8 @@ const AdminDashboard = () => {
     posts: '',
     events: '',
     users: '',
-    comments: ''
+    comments: '',
+    videos: ''
   });
 
   // Filter functions
@@ -293,6 +331,17 @@ const AdminDashboard = () => {
     );
   };
 
+  const filterVideos = (videos: Video[]) => {
+    if (!searchQueries.videos.trim()) return videos;
+    const query = searchQueries.videos.toLowerCase();
+    return videos.filter(video => 
+      video.title.toLowerCase().includes(query) ||
+      video.author.toLowerCase().includes(query) ||
+      video.description.toLowerCase().includes(query) ||
+      video.tags?.toLowerCase().includes(query)
+    );
+  };
+
   // Handle search input changes
   const handleSearchChange = (tab: string, value: string) => {
     setSearchQueries(prev => ({ ...prev, [tab]: value }));
@@ -326,7 +375,7 @@ const AdminDashboard = () => {
   
   const [deleteDialog, setDeleteDialog] = useState<{
     isOpen: boolean;
-    type: 'article' | 'event' | 'user' | 'post' | 'comment' | null;
+    type: 'article' | 'event' | 'user' | 'post' | 'comment' | 'video' | null;
     id: number | null;
     title: string;
   }>({
@@ -346,6 +395,10 @@ const AdminDashboard = () => {
   });
 
   const [showAIGenerator, setShowAIGenerator] = useState(false);
+  
+  // Video management states
+  const [showVideoForm, setShowVideoForm] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
 
   
   const apiCall = async (endpoint: string, method: string = 'GET', body?: any) => {
@@ -429,6 +482,13 @@ const AdminDashboard = () => {
           setAdminData(prev => ({ ...prev, comments: Array.isArray(comments) ? comments : [] }));
           
           break;
+        case 'videos':
+          data = await apiCall('/videos');
+          
+          const videos = data.videos || data.data || data || [];
+          setAdminData(prev => ({ ...prev, videos: Array.isArray(videos) ? videos : [] }));
+          
+          break;
       }
     } catch (error) {
       
@@ -451,6 +511,9 @@ const AdminDashboard = () => {
           break;
         case 'comments':
           setAdminData(prev => ({ ...prev, comments: [] }));
+          break;
+        case 'videos':
+          setAdminData(prev => ({ ...prev, videos: [] }));
           break;
       }
       toast({
@@ -551,6 +614,97 @@ const AdminDashboard = () => {
     }
   };
 
+  // Video management functions
+  const createVideo = async (videoData: any) => {
+    try {
+      console.log('Creating video with data:', videoData);
+      await apiCall('/videos', 'POST', videoData);
+      toast({
+        title: 'Success',
+        description: 'Video berhasil dibuat!'
+      });
+      loadData('videos');
+      setShowVideoForm(false);
+      setSelectedVideo(null);
+    } catch (error) {
+      console.error('Error creating video:', error);
+      toast({
+        title: 'Error',
+        description: `Error creating video: ${error}`,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const updateVideo = async (videoId: number, videoData: any) => {
+    try {
+      await apiCall(`/videos/${videoId}`, 'PUT', videoData);
+      toast({
+        title: 'Success',
+        description: 'Video berhasil diperbarui!'
+      });
+      loadData('videos');
+      setShowVideoForm(false);
+      setSelectedVideo(null);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `Error updating video: ${error}`,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const deleteVideo = async (videoId: number) => {
+    try {
+      await apiCall(`/videos/${videoId}`, 'DELETE');
+      toast({
+        title: 'Success',
+        description: 'Video berhasil dihapus!'
+      });
+      loadData('videos');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: `Error deleting video: ${error}`,
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const handleDeleteVideo = async (id: number) => {
+    const video = adminData.videos.find(v => v.id === id);
+    if (video) {
+      setDeleteDialog({
+        isOpen: true,
+        type: 'video',
+        id: id,
+        title: video.title
+      });
+    }
+  };
+
+  // Get video thumbnail utility function
+  const getVideoThumbnail = (video: Video) => {
+    if (video.thumbnail_url) {
+      return video.thumbnail_url;
+    }
+    // Extract YouTube thumbnail from youtube_url
+    if (video.youtube_url) {
+      const videoId = extractYouTubeVideoId(video.youtube_url);
+      if (videoId) {
+        return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
+      }
+    }
+    return '/placeholder.svg';
+  };
+
+  const extractYouTubeVideoId = (url: string) => {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+  };
+
   
   useEffect(() => {
     const loadAllData = async () => {
@@ -613,6 +767,9 @@ const AdminDashboard = () => {
           break;
         case 'event':
           await deleteEvent(deleteDialog.id);
+          break;
+        case 'video':
+          await deleteVideo(deleteDialog.id);
           break;
         case 'user':
           
@@ -1196,6 +1353,8 @@ const AdminDashboard = () => {
     publishedArticles: adminData.dashboardStats.overview?.publishedArticles || 0,
     totalPosts: adminData.dashboardStats.overview?.totalPosts || 0,
     totalComments: adminData.dashboardStats.overview?.totalComments || 0,
+    totalVideos: adminData.dashboardStats.overview?.totalVideos || Array.isArray(adminData.videos) ? adminData.videos.length : 0,
+    publishedVideos: adminData.dashboardStats.overview?.publishedVideos || Array.isArray(adminData.videos) ? adminData.videos.filter(v => v.status === 'published').length : 0,
     totalEvents: Array.isArray(adminData.events) ? adminData.events.length : 0,
     publishedEvents: Array.isArray(adminData.events) ? adminData.events.filter(e => e.status === 'published').length : 0,
     totalUsers: Array.isArray(adminData.users) ? adminData.users.length : 0,
@@ -1210,6 +1369,8 @@ const AdminDashboard = () => {
     publishedArticles: Array.isArray(adminData.articles) ? adminData.articles.filter(a => a.status === 'published').length : 0,
     totalPosts: Array.isArray(adminData.posts) ? adminData.posts.length : 0,
     totalComments: Array.isArray(adminData.comments) ? adminData.comments.length : 0,
+    totalVideos: Array.isArray(adminData.videos) ? adminData.videos.length : 0,
+    publishedVideos: Array.isArray(adminData.videos) ? adminData.videos.filter(v => v.status === 'published').length : 0,
     totalEvents: Array.isArray(adminData.events) ? adminData.events.length : 0,
     publishedEvents: Array.isArray(adminData.events) ? adminData.events.filter(e => e.status === 'published').length : 0,
     totalUsers: Array.isArray(adminData.users) ? adminData.users.length : 0,
@@ -1316,7 +1477,7 @@ const AdminDashboard = () => {
           <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-8">
             {/* Desktop Navigation */}
             <div className="hidden md:block">
-              <TabsList className="grid w-full grid-cols-9 bg-white/50 backdrop-blur-sm p-1 rounded-xl shadow-sm border">
+              <TabsList className="grid w-full grid-cols-10 bg-white/50 backdrop-blur-sm p-1 rounded-xl shadow-sm border">
                 <TabsTrigger value="overview" className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md">
                   Overview
                 </TabsTrigger>
@@ -1328,6 +1489,9 @@ const AdminDashboard = () => {
                 </TabsTrigger>
                 <TabsTrigger value="comments" className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md">
                   Komentar
+                </TabsTrigger>
+                <TabsTrigger value="videos" className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md">
+                  Video
                 </TabsTrigger>
                 <TabsTrigger value="events" className="rounded-lg data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md">
                   Events
@@ -1369,6 +1533,9 @@ const AdminDashboard = () => {
                   </SelectItem>
                   <SelectItem value="comments" className="rounded-lg">
                     💭 Komentar
+                  </SelectItem>
+                  <SelectItem value="videos" className="rounded-lg">
+                    🎥 Video
                   </SelectItem>
                   <SelectItem value="events" className="rounded-lg">
                     📅 Events
@@ -1444,6 +1611,19 @@ const AdminDashboard = () => {
                   <div className="text-3xl font-bold">{stats.totalComments}</div>
                   <p className="text-xs text-orange-200">
                     Forum comments
+                  </p>
+                </CardContent>
+              </Card>
+
+              <Card className="bg-gradient-to-r from-rose-500 to-rose-600 text-white border-0 shadow-lg hover:shadow-xl transition-all">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium text-rose-100">Total Video</CardTitle>
+                  <Video className="h-5 w-5 text-rose-200" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-3xl font-bold">{stats.totalVideos}</div>
+                  <p className="text-xs text-rose-200">
+                    {stats.publishedVideos} terpublikasi
                   </p>
                 </CardContent>
               </Card>
@@ -1923,6 +2103,139 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* Videos Tab */}
+          <TabsContent value="videos" className="space-y-6">
+            <Card className="bg-white/50 backdrop-blur-sm border shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-gray-900">
+                      <Video className="h-5 w-5 text-rose-600" />
+                      Video Management
+                    </CardTitle>
+                    <CardDescription>Kelola video edukasi pangan dan pertanian</CardDescription>
+                  </div>
+                  <Button onClick={() => setShowVideoForm(true)} className="flex items-center gap-2 bg-rose-600 hover:bg-rose-700">
+                    <Plus className="h-4 w-4" />
+                    Tambah Video
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <SearchBox 
+                  value={searchQueries.videos}
+                  onChange={(value) => handleSearchChange('videos', value)}
+                  placeholder="Cari video berdasarkan judul, deskripsi, atau pembuat..."
+                />
+                
+                {filterVideos(adminData.videos).length > 0 ? (
+                  <div className="space-y-4">
+                    {filterVideos(adminData.videos).map((video) => (
+                      <Card key={video.id} className="border border-gray-100 hover:border-rose-200 hover:shadow-md transition-all bg-white">
+                        <CardContent className="p-4 sm:p-6">
+                          <div className="flex flex-col sm:flex-row items-start justify-between gap-3 sm:gap-4">
+                            <div className="flex gap-3 sm:gap-4 flex-1 w-full">
+                              <div className="relative w-24 h-16 sm:w-32 sm:h-20 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                                <img
+                                  src={getVideoThumbnail(video)}
+                                  alt={video.title}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                                  <PlayCircle className="h-4 w-4 sm:h-6 sm:w-6 text-white" />
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
+                                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{video.title}</h3>
+                                  <div className="flex items-center gap-1 sm:gap-2">
+                                    <StatusBadge status={video.status} />
+                                    {video.featured && <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs">Featured</Badge>}
+                                  </div>
+                                </div>
+                                <p className="text-xs sm:text-sm text-gray-600 mb-2 line-clamp-2">{video.description}</p>
+                                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs text-gray-500">
+                                  <span>By {video.author}</span>
+                                  <div className="flex items-center gap-1">
+                                    <Eye className="h-3 w-3" />
+                                    <span>{video.view_count.toLocaleString()}</span>
+                                  </div>
+                                  {video.like_count && (
+                                    <div className="flex items-center gap-1">
+                                      <Heart className="h-3 w-3" />
+                                      <span>{video.like_count}</span>
+                                    </div>
+                                  )}
+                                  <span className="hidden sm:inline">{new Date(video.created_at).toLocaleDateString('id-ID')}</span>
+                                </div>
+                                {video.tags && (
+                                  <div className="flex flex-wrap gap-1 mt-2">
+                                    {video.tags.split(',').slice(0, 3).map((tag, index) => (
+                                      <Badge key={index} variant="outline" className="text-xs">
+                                        {tag.trim()}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-0.5 sm:gap-2 flex-shrink-0">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(video.youtube_url, '_blank')}
+                                className="text-blue-600 border-blue-200 hover:bg-blue-50 h-7 w-7 p-0 sm:h-9 sm:w-auto sm:px-3"
+                              >
+                                <ExternalLink className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">View</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedVideo(video);
+                                  setShowVideoForm(true);
+                                }}
+                                className="text-green-600 border-green-200 hover:bg-green-50 h-7 w-7 p-0 sm:h-9 sm:w-auto sm:px-3"
+                              >
+                                <Edit className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">Edit</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteVideo(video.id)}
+                                className="text-red-600 border-red-200 hover:bg-red-50 h-7 w-7 p-0 sm:h-9 sm:w-auto sm:px-3"
+                              >
+                                <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1" />
+                                <span className="hidden sm:inline">Delete</span>
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <Video className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    {searchQueries.videos.trim() ? (
+                      <>
+                        <p className="text-lg font-medium text-gray-900 mb-2">Tidak ada video ditemukan</p>
+                        <p className="text-sm">Coba ubah kata kunci pencarian untuk "{searchQueries.videos}"</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-lg font-medium">Tidak ada video</p>
+                        <p className="text-sm">Belum ada video yang tersedia. Mulai dengan menambahkan video baru.</p>
+                      </>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
           {/* Events Tab */}
           <TabsContent value="events" className="space-y-6">
             <RoleGuard feature="articles">
@@ -2212,7 +2525,8 @@ const AdminDashboard = () => {
                 deleteDialog.type === 'article' ? 'Artikel' : 
                 deleteDialog.type === 'event' ? 'Event' : 
                 deleteDialog.type === 'post' ? 'Postingan' :
-                deleteDialog.type === 'comment' ? 'Komentar' : 'User'
+                deleteDialog.type === 'comment' ? 'Komentar' : 
+                deleteDialog.type === 'video' ? 'Video' : 'User'
               }
             </AlertDialogTitle>
             <AlertDialogDescription className="text-gray-600 mt-2">
@@ -2220,7 +2534,8 @@ const AdminDashboard = () => {
                 deleteDialog.type === 'article' ? 'artikel' : 
                 deleteDialog.type === 'event' ? 'event' : 
                 deleteDialog.type === 'post' ? 'postingan' :
-                deleteDialog.type === 'comment' ? 'komentar' : 'user'
+                deleteDialog.type === 'comment' ? 'komentar' :
+                deleteDialog.type === 'video' ? 'video' : 'user'
               } "{deleteDialog.title}"? 
               <br />
               <span className="text-red-600 font-medium">Tindakan ini tidak dapat dibatalkan.</span>
@@ -2277,7 +2592,208 @@ const AdminDashboard = () => {
           </div>
         </div>
       )}
+      {/* Video Form Modal */}
+      <VideoFormModal
+        isOpen={showVideoForm}
+        onClose={() => {
+          setShowVideoForm(false);
+          setSelectedVideo(null);
+        }}
+        video={selectedVideo}
+        onSubmit={(id, data) => {
+          if (selectedVideo && id) {
+            updateVideo(id, data);
+          } else {
+            createVideo(data);
+          }
+        }}
+        isEditing={!!selectedVideo}
+      />
     </div>
+  );
+};
+
+// Video Form Modal Component
+interface VideoFormModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  video?: Video | null;
+  onSubmit: (id?: number, data?: any) => void;
+  isEditing: boolean;
+}
+
+const VideoFormModal = ({ isOpen, onClose, video, onSubmit, isEditing }: VideoFormModalProps) => {
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    author: '',
+    youtube_url: '',
+    thumbnail_url: '',
+    status: 'draft' as 'published' | 'draft' | 'archived',
+    featured: false,
+    tags: ''
+  });
+
+  useEffect(() => {
+    if (video) {
+      setFormData({
+        title: video.title || '',
+        description: video.description || '',
+        author: video.author || '',
+        youtube_url: video.youtube_url || '',
+        thumbnail_url: video.thumbnail_url || '',
+        status: video.status || 'draft',
+        featured: video.featured || false,
+        tags: video.tags || ''
+      });
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        author: '',
+        youtube_url: '',
+        thumbnail_url: '',
+        status: 'draft',
+        featured: false,
+        tags: ''
+      });
+    }
+  }, [video]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isEditing && video) {
+      onSubmit(video.id, formData);
+    } else {
+      onSubmit(undefined, formData);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-md w-[95vw] sm:w-[90vw] max-h-[85vh] overflow-y-auto p-4 sm:p-6">
+        <DialogHeader className="pb-3 sm:pb-4">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Video className="h-4 w-4 sm:h-5 sm:w-5 text-rose-600" />
+            {isEditing ? 'Edit Video' : 'Tambah Video Baru'}
+          </DialogTitle>
+          <DialogDescription className="text-xs sm:text-sm">
+            {isEditing ? 'Perbarui informasi video' : 'Tambahkan video edukasi baru ke platform'}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="title" className="text-xs sm:text-sm font-medium">Judul Video *</Label>
+              <Input
+                id="title"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Masukkan judul video..."
+                className="h-8 sm:h-9 text-sm"
+                required
+              />
+            </div>
+            
+            <div className="space-y-1.5">
+              <Label htmlFor="author" className="text-xs sm:text-sm font-medium">Pembuat *</Label>
+              <Input
+                id="author"
+                value={formData.author}
+                onChange={(e) => setFormData(prev => ({ ...prev, author: e.target.value }))}
+                placeholder="Nama pembuat video..."
+                className="h-8 sm:h-9 text-sm"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="youtube_url" className="text-xs sm:text-sm font-medium">URL YouTube *</Label>
+            <Input
+              id="youtube_url"
+              value={formData.youtube_url}
+              onChange={(e) => setFormData(prev => ({ ...prev, youtube_url: e.target.value }))}
+              placeholder="https://youtube.com/watch?v=..."
+              className="h-8 sm:h-9 text-sm"
+              required
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="description" className="text-xs sm:text-sm font-medium">Deskripsi *</Label>
+            <Textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Deskripsi video..."
+              rows={2}
+              className="text-sm resize-none min-h-[50px] sm:min-h-[60px]"
+              required
+            />
+          </div>
+
+          <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="thumbnail_url" className="text-xs sm:text-sm font-medium">URL Thumbnail (Opsional)</Label>
+              <Input
+                id="thumbnail_url"
+                value={formData.thumbnail_url}
+                onChange={(e) => setFormData(prev => ({ ...prev, thumbnail_url: e.target.value }))}
+                placeholder="URL thumbnail custom..."
+                className="h-8 sm:h-9 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="status" className="text-xs sm:text-sm font-medium">Status</Label>
+              <Select value={formData.status} onValueChange={(value: 'published' | 'draft' | 'archived') => setFormData(prev => ({ ...prev, status: value }))}>
+                <SelectTrigger className="h-8 sm:h-9 text-sm">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                  <SelectItem value="archived">Archived</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="tags" className="text-sm font-medium">Tags (pisahkan dengan koma)</Label>
+            <Input
+              id="tags"
+              value={formData.tags}
+              onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+              placeholder="pertanian, teknologi, edukasi..."
+              className="h-9"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2 py-2">
+            <input
+              type="checkbox"
+              id="featured"
+              checked={formData.featured}
+              onChange={(e) => setFormData(prev => ({ ...prev, featured: e.target.checked }))}
+              className="rounded border-gray-300 h-4 w-4"
+            />
+            <Label htmlFor="featured" className="text-sm font-medium">Video Unggulan</Label>
+          </div>
+
+          <DialogFooter className="pt-4 flex-col sm:flex-row gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={onClose} className="w-full sm:w-auto">
+              Batal
+            </Button>
+            <Button type="submit" className="bg-rose-600 hover:bg-rose-700 w-full sm:w-auto">
+              {isEditing ? 'Update' : 'Tambah'} Video
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
 

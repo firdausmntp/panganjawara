@@ -225,7 +225,83 @@ Kami menerima kontribusi! Silakan baca [CONTRIBUTING.md](CONTRIBUTING.md) untuk 
 - **Prettier**: Code formatting
 - **Conventional Commits**: Commit message format
 
-## 📊 Roadmap
+## � Changelog
+
+### 🔖 Version 1.0.2 (Current)
+**Release Date**: September 9, 2025
+
+**✨ New Features:**
+- 🎬 **Enhanced Video Education**: Complete video management system with YouTube integration
+- 💖 **Like System**: Interactive like functionality for videos with real-time updates
+- 📱 **Responsive Video Modals**: Mobile-optimized video management interface
+- 🎯 **Dashboard Improvements**: Enhanced main dashboard with video sections and better visual hierarchy
+- 🔄 **Real-time Data Updates**: Live video statistics and engagement tracking
+
+**🐛 Bug Fixes:**
+- Fixed video empty state display issues
+- Improved modal responsiveness across all screen sizes
+- Enhanced video thumbnail loading and error handling
+- Resolved dashboard stats redundancy
+
+**🎨 UI/UX Improvements:**
+- Cleaner hero section without redundant statistics
+- Better video card layouts with gradient effects
+- Improved loading states for video content
+- Enhanced visual feedback for user interactions
+
+---
+
+### 🔖 Version 1.0.1
+**Release Date**: September 7, 2025
+
+**✨ New Features:**
+- 👨‍💼 **Admin Video Management**: Complete CRUD operations for video content
+- 🔐 **Enhanced Security**: Improved admin authentication and role-based access
+- 📊 **Video Analytics**: View count tracking and engagement metrics
+- 🎨 **UI Polish**: Refined admin dashboard interface
+
+**🐛 Bug Fixes:**
+- Fixed API integration issues with video endpoints
+- Improved error handling for failed video uploads
+- Enhanced form validation in admin panels
+
+**⚡ Performance:**
+- Optimized video thumbnail loading
+- Improved API response caching
+- Better mobile performance for admin interfaces
+
+---
+
+### 🔖 Version 1.0.0
+**Release Date**: September 5, 2025
+
+**🎉 Initial Release - Core Platform Launch**
+
+**🌟 Major Features:**
+- 📊 **Real-time Price Monitoring**: Live commodity price tracking across Indonesia
+- 🗺️ **Interactive Indonesia Map**: Province-level data visualization with touch support
+- 🌤️ **Weather Integration**: BMKG API integration with auto-location detection
+- 🤖 **AI Article Generator**: Gemini AI-powered content creation with Imagen
+- 👥 **Community Platform**: Discussion forums and user engagement system
+- 📚 **Educational Hub**: Article and video content management
+- 🎯 **Smart Dashboard**: AI-powered insights and data analytics
+
+**🛠️ Technical Foundation:**
+- React 18.3.1 with TypeScript
+- Tailwind CSS design system
+- Shadcn/UI component library
+- Responsive mobile-first design
+- RESTful API integration
+- Real-time data synchronization
+
+**🎨 Design System:**
+- Emerald-based color palette
+- Consistent typography hierarchy
+- Accessible UI components
+- Dark mode preparation
+- Mobile-optimized interfaces
+
+## �📊 Roadmap
 
 ### Q4 2024
 - [ ] Multi-language support (EN/ID)

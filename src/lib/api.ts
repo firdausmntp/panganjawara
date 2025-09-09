@@ -11,6 +11,9 @@ export const API_CONFIG = {
     PUBLIC: {
       ARTICLES: '/public/articles',
       ARTICLES_TRENDING: '/public/articles/trending',
+      VIDEOS: '/public/videos',
+      VIDEOS_FEATURED: '/public/videos/featured',
+      VIDEOS_TRENDING: '/public/videos/trending',
     },
     // Posts endpoints
     POSTS: '/posts',

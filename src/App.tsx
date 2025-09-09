@@ -8,7 +8,10 @@ import MainLayout from "./components/layout/MainLayout";
 import AdminLayout from "./components/layout/AdminLayout";
 import AuthRedirect from "./components/auth/AuthRedirect";
 import Dashboard from "./pages/Dashboard";
-import Edukasi from "./pages/Edukasi";
+import EdukasiOverview from "./pages/EdukasiOverview";
+import EdukasiArtikel from "./pages/EdukasiArtikel";
+import EdukasiVideo from "./pages/EdukasiVideo";
+import EdukasiTools from "./pages/EdukasiTools";
 import ArtikelDetail from "./pages/ArtikelDetail";
 import Data from "./pages/Data";
 import Komunitas from "./pages/Komunitas";
@@ -31,7 +34,11 @@ const App = () => (
             {/* Public Routes */}
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Dashboard />} />
-              <Route path="edukasi" element={<Edukasi />} />
+              {/* Edukasi Routes */}
+              <Route path="edukasi" element={<EdukasiOverview />} />
+              <Route path="edukasi/artikel" element={<EdukasiArtikel />} />
+              <Route path="edukasi/video" element={<EdukasiVideo />} />
+              <Route path="edukasi/tools" element={<EdukasiTools />} />
               <Route path="edukasi/artikel/:id" element={<ArtikelDetail />} />
               <Route path="data" element={<Data />} />
               <Route path="komunitas" element={<Komunitas />} />
